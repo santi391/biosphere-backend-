@@ -7,14 +7,15 @@ const cors = require('cors');
 const app = express();
 const server = http.createServer(app);
 
-// Permisos básicos
+// Permisos básicos y conexión a tu carpeta visual
 app.use(cors());
 app.use(express.json());
+app.use(express.static('public'));
 
 // Configuración del radar en tiempo real (WebSockets)
 const io = new Server(server, {
     cors: {
-        origin: "*", // Permite conexiones desde cualquier pantalla
+        origin: "*", 
         methods: ["GET", "POST"]
     }
 });
@@ -23,14 +24,15 @@ const io = new Server(server, {
 io.on('connection', (socket) => {
     console.log('Un dispositivo se ha conectado al radar:', socket.id);
 
+    // Escucha el reporte desde el botón y hace el "eco" a todas las pantallas
+    socket.on('nuevo_reporte', (mensaje) => {
+        console.log('Alerta recibida en el servidor:', mensaje);
+        io.emit('actualizacion_radar', `📢 ${mensaje} - ¡Notificación enviada a la ONG!`);
+    });
+
     socket.on('disconnect', () => {
         console.log('Dispositivo desconectado:', socket.id);
     });
-});
-
-// Ruta de prueba para saber que el servidor no se ha caído
-app.get('/', (req, res) => {
-    res.send('¡El servidor de BIOSPHERE está vivo y funcionando al 100%!');
 });
 
 // Encender los motores

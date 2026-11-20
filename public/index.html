@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BIOSPHERE - Radar de Impacto</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #1a1a1a; color: white; text-align: center; padding: 50px; }
+        .ods-btn { padding: 15px 25px; margin: 10px; font-size: 16px; font-weight: bold; cursor: pointer; border: none; border-radius: 8px; }
+        #ods6 { background-color: #26bde2; color: white; }
+        #ods14 { background-color: #0a97d9; color: white; }
+        #ods15 { background-color: #56c02b; color: white; }
+        #log { margin-top: 30px; padding: 20px; background-color: #333; border-radius: 8px; min-height: 100px; text-align: left; }
+    </style>
+</head>
+<body>
+    <h1>🌐 Radar BIOSPHERE</h1>
+    <p>Reporta un incidente ambiental en tiempo real</p>
+
+    <button id="ods6" class="ods-btn" onclick="enviarReporte('ODS 6: Agua limpia')">💧 Reportar ODS 6</button>
+    <button id="ods14" class="ods-btn" onclick="enviarReporte('ODS 14: Vida submarina')">🌊 Reportar ODS 14</button>
+    <button id="ods15" class="ods-btn" onclick="enviarReporte('ODS 15: Vida de ecosistemas')">🌳 Reportar ODS 15</button>
+
+    <div id="log">
+        <h3>Transmisiones en vivo:</h3>
+        <ul id="mensajes"></ul>
+    </div>
+
+    <!-- Script de conexión para WebSockets -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io(); // Se conecta al servidor automáticamente
+
+        function enviarReporte(ods) {
+            const mensaje = `Alerta: ${ods}`;
+            socket.emit('nuevo_reporte', mensaje); // Envía el clic al servidor
+        }
+
+        // Escucha las respuestas del servidor y las dibuja en pantalla
+        socket.on('actualizacion_radar', (datos) => {
+            const lista = document.getElementById('mensajes');
+            const nuevoItem = document.createElement('li');
+            nuevoItem.textContent = datos;
+            lista.appendChild(nuevoItem);
+        });
+    </script>
+</body>
+</html>
