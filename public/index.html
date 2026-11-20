@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BIOSPHERE - Radar de Impacto</title>
+    <title>BIOSPHERE - Radar de Impacto Real</title>
     <style>
         body { font-family: Arial, sans-serif; background-color: #1a1a1a; color: white; text-align: center; padding: 50px; }
         .ods-btn { padding: 15px 25px; margin: 10px; font-size: 16px; font-weight: bold; cursor: pointer; border: none; border-radius: 8px; }
@@ -11,37 +11,56 @@
         #ods14 { background-color: #0a97d9; color: white; }
         #ods15 { background-color: #56c02b; color: white; }
         #log { margin-top: 30px; padding: 20px; background-color: #333; border-radius: 8px; min-height: 100px; text-align: left; }
+        .alerta-item { margin-bottom: 10px; padding: 10px; background-color: #444; border-left: 5px solid #ff4444; }
     </style>
 </head>
 <body>
     <h1>🌐 Radar BIOSPHERE</h1>
-    <p>Reporta un incidente ambiental en tiempo real</p>
+    <p>Reporta incidentes ambientales con coordenadas reales</p>
 
-    <button id="ods6" class="ods-btn" onclick="enviarReporte('ODS 6: Agua limpia')">💧 Reportar ODS 6</button>
-    <button id="ods14" class="ods-btn" onclick="enviarReporte('ODS 14: Vida submarina')">🌊 Reportar ODS 14</button>
-    <button id="ods15" class="ods-btn" onclick="enviarReporte('ODS 15: Vida de ecosistemas')">🌳 Reportar ODS 15</button>
+    <button id="ods6" class="ods-btn" onclick="enviarReporte('ODS 6: Contaminación de Agua')">💧 Reportar ODS 6</button>
+    <button id="ods14" class="ods-btn" onclick="enviarReporte('ODS 14: Derrame Oceánico')">🌊 Reportar ODS 14</button>
+    <button id="ods15" class="ods-btn" onclick="enviarReporte('ODS 15: Tala Ilegal / Incendio')">🌳 Reportar ODS 15</button>
 
     <div id="log">
-        <h3>Transmisiones en vivo:</h3>
-        <ul id="mensajes"></ul>
+        <h3>Transmisiones Satelitales en vivo:</h3>
+        <ul id="mensajes" style="list-style-type: none; padding: 0;"></ul>
     </div>
 
-    <!-- Script de conexión para WebSockets -->
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        const socket = io(); // Se conecta al servidor automáticamente
+        const socket = io();
 
         function enviarReporte(ods) {
-            const mensaje = `Alerta: ${ods}`;
-            socket.emit('nuevo_reporte', mensaje); // Envía el clic al servidor
+            // Verificar si el navegador tiene GPS
+            if (navigator.geolocation) {
+                // Pedir coordenadas reales
+                navigator.geolocation.getCurrentPosition((posicion) => {
+                    const datosReales = {
+                        ods: ods,
+                        latitud: posicion.coords.latitude,
+                        longitud: posicion.coords.longitude,
+                        fecha: new Date().toLocaleString() // Saca la hora y fecha exacta del sistema
+                    };
+                    
+                    socket.emit('nuevo_reporte', datosReales);
+                }, (error) => {
+                    alert("Para un reporte real, debes aceptar los permisos de ubicación de tu navegador.");
+                });
+            } else {
+                alert("Tu navegador no soporta geolocalización.");
+            }
         }
 
-        // Escucha las respuestas del servidor y las dibuja en pantalla
+        // Escuchar al servidor
         socket.on('actualizacion_radar', (datos) => {
             const lista = document.getElementById('mensajes');
             const nuevoItem = document.createElement('li');
-            nuevoItem.textContent = datos;
-            lista.appendChild(nuevoItem);
+            nuevoItem.className = 'alerta-item';
+            nuevoItem.innerHTML = `<strong>🚨 ${datos.ods}</strong><br>📍 Coordenadas: ${datos.latitud}, ${datos.longitud}<br>🕒 Hora: ${datos.fecha}`;
+            
+            // Poner el mensaje más nuevo arriba de todo
+            lista.insertBefore(nuevoItem, lista.firstChild);
         });
     </script>
 </body>

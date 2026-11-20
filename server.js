@@ -24,10 +24,12 @@ const io = new Server(server, {
 io.on('connection', (socket) => {
     console.log('Un dispositivo se ha conectado al radar:', socket.id);
 
-    // Escucha el reporte desde el botón y hace el "eco" a todas las pantallas
-    socket.on('nuevo_reporte', (mensaje) => {
-        console.log('Alerta recibida en el servidor:', mensaje);
-        io.emit('actualizacion_radar', `📢 ${mensaje} - ¡Notificación enviada a la ONG!`);
+    // Escucha el paquete de datos reales
+    socket.on('nuevo_reporte', (datosReales) => {
+        console.log('Alerta con coordenadas recibida:', datosReales);
+        
+        // Retransmite el paquete de datos intacto a todas las pantallas
+        io.emit('actualizacion_radar', datosReales);
     });
 
     socket.on('disconnect', () => {
