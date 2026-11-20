@@ -3,65 +3,672 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BIOSPHERE - Radar de Impacto Real</title>
+    <title>BIOSPHERE | Monitoreo Satelital y Alerta Ambiental</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+
     <style>
-        body { font-family: Arial, sans-serif; background-color: #1a1a1a; color: white; text-align: center; padding: 50px; }
-        .ods-btn { padding: 15px 25px; margin: 10px; font-size: 16px; font-weight: bold; cursor: pointer; border: none; border-radius: 8px; }
-        #ods6 { background-color: #26bde2; color: white; }
-        #ods14 { background-color: #0a97d9; color: white; }
-        #ods15 { background-color: #56c02b; color: white; }
-        #log { margin-top: 30px; padding: 20px; background-color: #333; border-radius: 8px; min-height: 100px; text-align: left; }
-        .alerta-item { margin-bottom: 10px; padding: 10px; background-color: #444; border-left: 5px solid #ff4444; }
+        :root {
+            --bg-base: #090d16;
+            --bg-panel: #111827;
+            --bg-card: #1f2937;
+            --border: #374151;
+            --text-main: #f9fafb;
+            --text-muted: #9ca3af;
+            --ods6: #0ea5e9;
+            --ods14: #3b82f6;
+            --ods15: #10b981;
+            --critico: #ef4444;
+        }
+
+        * { box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg-base); color: var(--text-main); margin: 0; display: flex; flex-direction: column; min-height: 100vh; }
+
+        header { background: var(--bg-panel); padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 12px; }
+        .brand h1 { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: 0.5px; }
+        .brand span { font-size: 12px; color: var(--text-muted); }
+
+        .kpi-strip { display: flex; gap: 10px; flex-wrap: wrap; }
+        .kpi-box { background: var(--bg-base); border: 1px solid var(--border); padding: 6px 14px; border-radius: 8px; display: flex; flex-direction: column; }
+        .kpi-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; }
+        .kpi-val { font-size: 15px; font-weight: 800; }
+
+        .status-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .live-pill { background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: #6ee7b7; padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 800; }
+        .btn-tool { background: #1e293b; border: 1px solid #475569; color: #e2e8f0; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer; }
+        .btn-tool:hover { background: #334155; }
+
+        .action-bar { background: #0f172a; padding: 10px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; }
+        .local-telemetry { display: flex; align-items: center; gap: 12px; font-size: 12px; background: var(--bg-panel); padding: 7px 14px; border-radius: 8px; border: 1px solid var(--border); flex-wrap: wrap; }
+        .local-telemetry strong { color: #38bdf8; }
+
+        .report-form { display: flex; gap: 8px; flex: 1; max-width: 760px; flex-wrap: wrap; }
+        .report-form select, .report-form input { background: var(--bg-panel); border: 1px solid var(--border); color: white; padding: 8px 12px; border-radius: 8px; font-size: 12px; font-family: inherit; }
+        .report-form input { flex: 1; min-width: 180px; }
+        .btn-send { background: #ef4444; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 700; font-size: 12px; cursor: pointer; }
+        .btn-send:hover { background: #dc2626; }
+
+        .workspace { display: flex; flex-direction: column; flex: 1; padding: 16px 24px; gap: 16px; }
+
+        .map-wrapper { position: relative; width: 100%; height: 46vh; min-height: 320px; }
+        #mapa { width: 100%; height: 100%; border-radius: 12px; border: 1px solid var(--border); z-index: 1; background: #0b1120; }
+        .leaflet-tile-pane { filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(92%); }
+
+        .filter-bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .filter-group { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        .filter-btn { background: var(--bg-panel); border: 1px solid var(--border); color: var(--text-muted); padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; }
+        .filter-btn.active { background: #2563eb; color: white; border-color: #3b82f6; }
+        .radar-select { background: var(--bg-panel); color: #38bdf8; border: 1px solid var(--border); border-radius: 20px; padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; }
+
+        .triage-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+        .column { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; height: 48vh; min-height: 340px; }
+        .col-head { display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid var(--border); font-size: 13px; font-weight: 800; }
+        .badge-count { background: var(--bg-base); padding: 2px 9px; border-radius: 12px; font-size: 11px; }
+
+        .cards-scroll { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 4px; }
+        .cards-scroll::-webkit-scrollbar { width: 5px; }
+        .cards-scroll::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 10px; }
+
+        .incident-card { background: var(--bg-card); border-radius: 8px; padding: 12px; border-left: 4px solid; font-size: 12px; display: flex; flex-direction: column; gap: 7px; }
+        .incident-card:hover { background: #263244; }
+        .incident-card.ods6 { border-left-color: var(--ods6); }
+        .incident-card.ods14 { border-left-color: var(--ods14); }
+        .incident-card.ods15 { border-left-color: var(--ods15); }
+
+        .card-top { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+        .source-pill { font-size: 10px; font-weight: 700; color: #38bdf8; background: rgba(56, 189, 248, 0.12); padding: 2px 7px; border-radius: 4px; }
+        .sev-pill { font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 4px; text-transform: uppercase; }
+        .sev-CRÍTICO { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid #ef4444; }
+        .sev-ALTO { background: rgba(245, 158, 11, 0.2); color: #fcd34d; border: 1px solid #f59e0b; }
+        .sev-MODERADO { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; border: 1px solid #10b981; }
+
+        .weather-strip { background: rgba(9, 13, 22, 0.75); padding: 6px 8px; border-radius: 6px; font-size: 11px; color: #bae6fd; border: 1px solid #1e3a5f; display: none; }
+        .meta-row { display: flex; justify-content: space-between; color: var(--text-muted); font-size: 11px; }
+
+        .card-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; padding-top: 8px; border-top: 1px solid #374151; }
+        .btn-op { border: none; padding: 5px 9px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
+        .btn-focus { background: #374151; color: #f3f4f6; }
+        .btn-weather { background: #0369a1; color: white; }
+        .btn-share { background: #15803d; color: white; }
+        .btn-link { background: #1e293b; border: 1px solid #475569; color: #93c5fd; }
+
+        @media (max-width: 960px) {
+            .triage-grid { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
-    <h1>🌐 Radar BIOSPHERE</h1>
-    <p>Reporta incidentes ambientales con coordenadas reales</p>
 
-    <button id="ods6" class="ods-btn" onclick="enviarReporte('ODS 6: Contaminación de Agua')">💧 Reportar ODS 6</button>
-    <button id="ods14" class="ods-btn" onclick="enviarReporte('ODS 14: Derrame Oceánico')">🌊 Reportar ODS 14</button>
-    <button id="ods15" class="ods-btn" onclick="enviarReporte('ODS 15: Tala Ilegal / Incendio')">🌳 Reportar ODS 15</button>
+    <header>
+        <div class="brand">
+            <h1>🌐 BIOSPHERE <span style="color:#38bdf8;">TELEMETRY</span></h1>
+            <span>Monitoreo Ambiental Satelital y Alerta Temprana en Tiempo Real</span>
+        </div>
 
-    <div id="log">
-        <h3>Transmisiones Satelitales en vivo:</h3>
-        <ul id="mensajes" style="list-style-type: none; padding: 0;"></ul>
+        <div class="kpi-strip">
+            <div class="kpi-box">
+                <span class="kpi-label">Eventos Activos</span>
+                <span class="kpi-val" id="kpi-total">0</span>
+            </div>
+            <div class="kpi-box">
+                <span class="kpi-label">Severidad Crítica</span>
+                <span class="kpi-val" style="color:#ef4444;" id="kpi-criticos">0</span>
+            </div>
+            <div class="kpi-box">
+                <span class="kpi-label">Reportes en Campo</span>
+                <span class="kpi-val" style="color:#38bdf8;" id="kpi-campo">0</span>
+            </div>
+        </div>
+
+        <div class="status-actions">
+            <div class="live-pill" id="sensor-status">🛰️ CONECTANDO SATÉLITES...</div>
+            <button class="btn-tool" onclick="sincronizarTodo()">🔄 Actualizar</button>
+            <button class="btn-tool" onclick="exportarCSV()">📥 Exportar CSV</button>
+            <button class="btn-tool" onclick="exportarGeoJSON()">🌍 GeoJSON</button>
+        </div>
+    </header>
+
+    <div class="action-bar">
+        <div class="local-telemetry" id="telemetria-local">
+            <span>📡 Escaneando estación GPS local...</span>
+        </div>
+
+        <form class="report-form" onsubmit="enviarReporteCampo(event)">
+            <select id="rep-ods" required>
+                <option value="ODS 6">💧 ODS 6 (Agua/Inundación)</option>
+                <option value="ODS 14">🌊 ODS 14 (Océano/Costas)</option>
+                <option value="ODS 15">🌳 ODS 15 (Bosques/Sismo)</option>
+            </select>
+            <select id="rep-sev" required>
+                <option value="CRÍTICO">🚨 Severidad: Crítica</option>
+                <option value="ALTO">⚠️ Severidad: Alta</option>
+                <option value="MODERADO">ℹ️ Severidad: Moderada</option>
+            </select>
+            <input type="text" id="rep-desc" placeholder="Reportar incidente real observado en tu ubicación..." required />
+            <button type="submit" class="btn-send">📍 Registrar con GPS</button>
+        </form>
+    </div>
+
+    <div class="workspace">
+        <div class="map-wrapper">
+            <div id="mapa"></div>
+        </div>
+
+        <div class="filter-bar">
+            <div class="filter-group">
+                <button class="filter-btn active" onclick="aplicarFiltro('TODOS', this)">Todos los Eventos</button>
+                <button class="filter-btn" onclick="aplicarFiltro('CERCA', this)">📡 En mi Radio</button>
+                <button class="filter-btn" onclick="aplicarFiltro('CRÍTICO', this)">🚨 Solo Críticos</button>
+                <button class="filter-btn" onclick="aplicarFiltro('NASA', this)">🛰️ NASA EONET</button>
+                <button class="filter-btn" onclick="aplicarFiltro('USGS', this)">🌋 Sismos USGS</button>
+                <button class="filter-btn" onclick="aplicarFiltro('CAMPO', this)">📍 Reportes GPS</button>
+                <select id="radio-radar" class="radar-select" onchange="actualizarRadioRadar()">
+                    <option value="300">Radio: 300 km</option>
+                    <option value="800" selected>Radio: 800 km</option>
+                    <option value="2000">Radio: 2,000 km</option>
+                </select>
+            </div>
+            <span style="font-size:11px; color:var(--text-muted);" id="gps-status">Ubicación base: esperando permiso GPS...</span>
+        </div>
+
+        <div class="triage-grid">
+            <div class="column">
+                <div class="col-head" style="color:var(--ods6);">
+                    <span>💧 ODS 6: Agua, Caudales e Inundaciones</span>
+                    <span class="badge-count" id="count-ods6">0</span>
+                </div>
+                <div class="cards-scroll" id="lista-ods6"></div>
+            </div>
+
+            <div class="column">
+                <div class="col-head" style="color:var(--ods14);">
+                    <span>🌊 ODS 14: Océanos, Tormentas y Tsunamis</span>
+                    <span class="badge-count" id="count-ods14">0</span>
+                </div>
+                <div class="cards-scroll" id="lista-ods14"></div>
+            </div>
+
+            <div class="column">
+                <div class="col-head" style="color:var(--ods15);">
+                    <span>🌳 ODS 15: Bosques, Atmósfera y Sismos</span>
+                    <span class="badge-count" id="count-ods15">0</span>
+                </div>
+                <div class="cards-scroll" id="lista-ods15"></div>
+            </div>
+        </div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
 
-        function enviarReporte(ods) {
-            // Verificar si el navegador tiene GPS
-            if (navigator.geolocation) {
-                // Pedir coordenadas reales
-                navigator.geolocation.getCurrentPosition((posicion) => {
-                    const datosReales = {
-                        ods: ods,
-                        latitud: posicion.coords.latitude,
-                        longitud: posicion.coords.longitude,
-                        fecha: new Date().toLocaleString() // Saca la hora y fecha exacta del sistema
-                    };
-                    
-                    socket.emit('nuevo_reporte', datosReales);
-                }, (error) => {
-                    alert("Para un reporte real, debes aceptar los permisos de ubicación de tu navegador.");
+        const map = L.map('mapa', {
+            worldCopyJump: true,
+            minZoom: 2
+        });
+        map.fitBounds([[-55, -165], [72, 165]]);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap | Datos reales: NASA EONET, USGS, Open-Meteo',
+            maxZoom: 18
+        }).addTo(map);
+
+        setTimeout(() => map.invalidateSize(), 200);
+
+        const capaMarcadores = L.layerGroup().addTo(map);
+        const marcadoresPorId = {};
+        const mapaEventos = new Map();
+        let filtroActual = 'TODOS';
+        let miUbicacion = null;
+        let radioKm = 800;
+        let circuloRadar = null;
+
+        function actualizarRadioRadar() {
+            radioKm = Number(document.getElementById('radio-radar').value);
+            if (miUbicacion) {
+                if (circuloRadar) map.removeLayer(circuloRadar);
+                circuloRadar = L.circle([miUbicacion.lat, miUbicacion.lng], {
+                    radius: radioKm * 1000,
+                    color: '#38bdf8',
+                    fillColor: '#38bdf8',
+                    fillOpacity: 0.06,
+                    weight: 1.5,
+                    dashArray: '6, 6'
+                }).addTo(map);
+            }
+            renderizarTodo();
+        }
+
+        // Leyenda visual en la esquina inferior izquierda del mapa
+        const leyenda = L.control({ position: 'bottomleft' });
+        leyenda.onAdd = () => {
+            const div = L.DomUtil.create('div');
+            div.style.cssText = 'background:#111827ee; color:#f9fafb; padding:8px 12px; border-radius:8px; border:1px solid #374151; font-size:11px; line-height:1.6;';
+            div.innerHTML = `
+                <strong>Simbología:</strong><br>
+                <span style="color:#ef4444;">●</span> Crítico &nbsp;
+                <span style="color:#0ea5e9;">●</span> ODS 6 &nbsp;
+                <span style="color:#3b82f6;">●</span> ODS 14 &nbsp;
+                <span style="color:#10b981;">●</span> ODS 15 &nbsp;
+                <span style="color:#38bdf8;">◉</span> Tu Radar
+            `;
+            return div;
+        };
+        leyenda.addTo(map);
+
+        function fusionarEventos(listaNueva) {
+            if (!Array.isArray(listaNueva)) return;
+            listaNueva.forEach(ev => {
+                if (ev && ev.id) mapaEventos.set(ev.id, ev);
+            });
+            actualizarResumenEstado();
+            renderizarTodo();
+        }
+
+        function actualizarResumenEstado() {
+            const arr = Array.from(mapaEventos.values());
+            const nasa = arr.filter(e => e.id.startsWith('nasa-')).length;
+            const usgs = arr.filter(e => e.id.startsWith('usgs-')).length;
+            const rios = arr.filter(e => e.id.startsWith('rio-')).length;
+            const aire = arr.filter(e => e.id.startsWith('aire-')).length;
+            const campo = arr.filter(e => e.id.startsWith('campo-')).length;
+            document.getElementById('sensor-status').textContent =
+                `🛰️ NASA: ${nasa} | USGS: ${usgs} | RÍOS: ${rios} | AIRE: ${aire} | GPS: ${campo}`;
+        }
+
+        async function escanearEntornoDirecto(lat, lng) {
+            try {
+                const [resClima, resAire] = await Promise.all([
+                    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,wind_speed_10m`).then(r => r.json()),
+                    fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lng}&current=us_aqi,pm2_5`).then(r => r.json())
+                ]);
+                document.getElementById('telemetria-local').innerHTML = `
+                    <span>📍 <strong>Tu Estación Local:</strong></span>
+                    <span>🌡️ ${resClima.current?.temperature_2m ?? '--'}°C</span>
+                    <span>💧 ${resClima.current?.relative_humidity_2m ?? '--'}%</span>
+                    <span>💨 ${resClima.current?.wind_speed_10m ?? '--'} km/h</span>
+                    <span>🌫️ AQI: <strong>${resAire.current?.us_aqi ?? '--'}</strong> (PM2.5: ${resAire.current?.pm2_5 ?? '--'} µg/m³)</span>
+                `;
+            } catch (e) {}
+        }
+
+        async function cargarSensoresDirectos() {
+            const [usgs, nasa, rios, aire] = await Promise.allSettled([
+                fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson').then(r => r.json()),
+                fetch('https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=30').then(r => r.json()),
+                fetch('https://flood-api.open-meteo.com/v1/flood?latitude=-3.46,-12.04,23.81,30.04,15.12&longitude=-62.21,-77.04,90.41,31.23,105.80&daily=river_discharge,river_discharge_mean&forecast_days=1').then(r => r.json()),
+                fetch('https://air-quality-api.open-meteo.com/v1/air-quality?latitude=-3.46,0.51,-0.78,28.61,-12.04&longitude=-62.21,25.25,113.92,77.20,-77.04&current=us_aqi,pm2_5').then(r => r.json())
+            ]);
+
+            const nuevos = [];
+
+            if (usgs.status === 'fulfilled' && usgs.value?.features) {
+                usgs.value.features.slice(0, 25).forEach(s => {
+                    const mag = s.properties.mag;
+                    const ts = s.properties.tsunami === 1;
+                    nuevos.push({
+                        id: `usgs-${s.id}`,
+                        ods: ts ? 'ODS 14' : 'ODS 15',
+                        severidad: (mag >= 5.5 || ts) ? 'CRÍTICO' : (mag >= 4.5 ? 'ALTO' : 'MODERADO'),
+                        detalle: `${ts ? '🌊 ALERTA TSUNAMI + ' : ''}Sismo M${mag.toFixed(1)} - ${s.properties.place}`,
+                        latitud: s.geometry.coordinates[1],
+                        longitud: s.geometry.coordinates[0],
+                        fecha: new Date(s.properties.time).toLocaleString(),
+                        fuente: '🌋 USGS Sismología',
+                        urlOficial: s.properties.url || 'https://earthquake.usgs.gov/'
+                    });
                 });
-            } else {
-                alert("Tu navegador no soporta geolocalización.");
+            }
+
+            if (nasa.status === 'fulfilled' && nasa.value?.events) {
+                nasa.value.events.forEach(ev => {
+                    const geo = ev.geometry?.[ev.geometry.length - 1];
+                    if (!geo || geo.type !== 'Point') return;
+                    const cat = ev.categories?.[0]?.id || '';
+                    let ods = 'ODS 15';
+                    if (cat === 'floods' || cat === 'drought') ods = 'ODS 6';
+                    if (cat === 'severeStorms' || cat === 'seaLakeIce') ods = 'ODS 14';
+                    nuevos.push({
+                        id: `nasa-${ev.id}`,
+                        ods,
+                        severidad: (cat === 'severeStorms' || cat === 'volcanoes') ? 'CRÍTICO' : 'ALTO',
+                        detalle: ev.title,
+                        latitud: geo.coordinates[1],
+                        longitud: geo.coordinates[0],
+                        fecha: new Date(geo.date).toLocaleString(),
+                        fuente: '🛰️ NASA EONET',
+                        urlOficial: ev.sources?.[0]?.url || ev.link || 'https://eonet.gsfc.nasa.gov/'
+                    });
+                });
+            }
+
+            if (rios.status === 'fulfilled' && Array.isArray(rios.value)) {
+                const cuencas = [
+                    { nombre: 'Cuenca Río Amazonas (Manaos)', lat: -3.46, lng: -62.21 },
+                    { nombre: 'Cuenca Río Rímac / Andes (Lima)', lat: -12.04, lng: -77.04 },
+                    { nombre: 'Delta Ganges-Brahmaputra', lat: 23.81, lng: 90.41 },
+                    { nombre: 'Cuenca Baja Río Nilo', lat: 30.04, lng: 31.23 },
+                    { nombre: 'Cuenca Río Mekong', lat: 15.12, lng: 105.80 }
+                ];
+                rios.value.forEach((r, idx) => {
+                    const act = r.daily?.river_discharge?.[0];
+                    const med = r.daily?.river_discharge_mean?.[0];
+                    if (act == null || med == null) return;
+                    const ratio = med > 0 ? act / med : 1;
+                    nuevos.push({
+                        id: `rio-${idx}`,
+                        ods: 'ODS 6',
+                        severidad: ratio >= 1.8 ? 'CRÍTICO' : (ratio >= 1.25 ? 'ALTO' : 'MODERADO'),
+                        detalle: `Caudal ${cuencas[idx].nombre}: ${act.toFixed(1)} m³/s (Media: ${med.toFixed(1)} m³/s)`,
+                        latitud: cuencas[idx].lat,
+                        longitud: cuencas[idx].lng,
+                        fecha: new Date().toLocaleString(),
+                        fuente: '🌊 Hidrología GloFAS',
+                        urlOficial: 'https://open-meteo.com/en/docs/flood-api'
+                    });
+                });
+            }
+
+            if (aire.status === 'fulfilled' && Array.isArray(aire.value)) {
+                const zonas = [
+                    { nombre: 'Reserva Amazónica Central', lat: -3.46, lng: -62.21 },
+                    { nombre: 'Selva Cuenca del Congo', lat: 0.51, lng: 25.25 },
+                    { nombre: 'Bosque Tropical de Borneo', lat: -0.78, lng: 113.92 },
+                    { nombre: 'Corredor Urbano Nueva Delhi', lat: 28.61, lng: 77.20 },
+                    { nombre: 'Costa Central Lima Metropolitana', lat: -12.04, lng: -77.04 }
+                ];
+                aire.value.forEach((a, idx) => {
+                    const aqi = a.current?.us_aqi;
+                    const pm25 = a.current?.pm2_5;
+                    if (aqi == null) return;
+                    nuevos.push({
+                        id: `aire-${idx}`,
+                        ods: 'ODS 15',
+                        severidad: aqi >= 150 ? 'CRÍTICO' : (aqi >= 80 ? 'ALTO' : 'MODERADO'),
+                        detalle: `Atmósfera ${zonas[idx].nombre}: US AQI ${aqi} | PM2.5: ${pm25} µg/m³`,
+                        latitud: zonas[idx].lat,
+                        longitud: zonas[idx].lng,
+                        fecha: new Date().toLocaleString(),
+                        fuente: '🌫️ Satélite CAMS',
+                        urlOficial: 'https://open-meteo.com/en/docs/air-quality-api'
+                    });
+                });
+            }
+
+            fusionarEventos(nuevos);
+        }
+
+        async function sincronizarTodo() {
+            document.getElementById('sensor-status').textContent = '🛰️ SINCRONIZANDO...';
+            try {
+                const res = await fetch('/api/telemetria?forzar=1');
+                const data = await res.json();
+                if (data?.eventos) fusionarEventos(data.eventos);
+            } catch (e) {}
+            await cargarSensoresDirectos();
+        }
+
+        async function analizarClimaEnZona(id) {
+            const ev = mapaEventos.get(id);
+            if (!ev) return;
+
+            const box = document.getElementById(`clima-${id}`);
+            if (box) {
+                box.style.display = 'block';
+                box.innerHTML = '⏳ Consultando estación meteorológica satelital en esas coordenadas...';
+            }
+
+            try {
+                const [clima, aire] = await Promise.all([
+                    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${ev.latitud}&longitude=${ev.longitud}&current=temperature_2m,precipitation,wind_speed_10m,wind_direction_10m`).then(r => r.json()),
+                    fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${ev.latitud}&longitude=${ev.longitud}&current=us_aqi,pm2_5`).then(r => r.json())
+                ]);
+
+                const temp = clima.current?.temperature_2m ?? '--';
+                const lluvia = clima.current?.precipitation ?? 0;
+                const viento = clima.current?.wind_speed_10m ?? '--';
+                const dir = clima.current?.wind_direction_10m ?? '--';
+                const aqi = aire.current?.us_aqi ?? '--';
+                const pm25 = aire.current?.pm2_5 ?? '--';
+
+                if (box) {
+                    box.innerHTML = `📡 <strong>Condiciones en zona ahora:</strong> 🌡️ ${temp}°C | 🌧️ Lluvia: ${lluvia} mm | 💨 Viento: ${viento} km/h (${dir}°) | 🌫️ AQI: ${aqi} (PM2.5: ${pm25})`;
+                }
+            } catch {
+                if (box) box.innerHTML = '⚠️ No se pudo obtener telemetría local en este momento.';
             }
         }
 
-        // Escuchar al servidor
-        socket.on('actualizacion_radar', (datos) => {
-            const lista = document.getElementById('mensajes');
-            const nuevoItem = document.createElement('li');
-            nuevoItem.className = 'alerta-item';
-            nuevoItem.innerHTML = `<strong>🚨 ${datos.ods}</strong><br>📍 Coordenadas: ${datos.latitud}, ${datos.longitud}<br>🕒 Hora: ${datos.fecha}`;
-            
-            // Poner el mensaje más nuevo arriba de todo
-            lista.insertBefore(nuevoItem, lista.firstChild);
+        function compartirAlertaReal(id) {
+            const ev = mapaEventos.get(id);
+            if (!ev) return;
+
+            const mapsLink = `https://www.google.com/maps?q=${ev.latitud},${ev.longitud}`;
+            const texto = `🚨 ALERTA AMBIENTAL BIOSPHERE (${ev.ods} - ${ev.severidad})\n` +
+                          `• Evento: ${ev.detalle}\n` +
+                          `• Fuente: ${ev.fuente}\n` +
+                          `• Coordenadas: ${ev.latitud.toFixed(4)}, ${ev.longitud.toFixed(4)}\n` +
+                          `• Ubicación exacta: ${mapsLink}\n` +
+                          `• Fecha/Hora: ${ev.fecha}`;
+
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(texto).catch(() => {});
+            }
+            window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank');
+        }
+
+        function exportarCSV() {
+            const lista = Array.from(mapaEventos.values());
+            if (lista.length === 0) return;
+            const filas = [['ID', 'ODS', 'Severidad', 'Detalle', 'Latitud', 'Longitud', 'Fecha', 'Fuente', 'Enlace_Oficial']];
+            lista.forEach(ev => {
+                filas.push([
+                    ev.id, ev.ods, ev.severidad,
+                    `"${ev.detalle.replace(/"/g, '""')}"`,
+                    ev.latitud, ev.longitud,
+                    `"${ev.fecha}"`, `"${ev.fuente}"`,
+                    ev.urlOficial || ''
+                ]);
+            });
+            const blob = new Blob([filas.map(f => f.join(',')).join('\n')], { type: 'text/csv;charset=utf-8;' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `biosphere_telemetria_${new Date().toISOString().slice(0, 10)}.csv`;
+            a.click();
+        }
+
+        function exportarGeoJSON() {
+            const lista = Array.from(mapaEventos.values());
+            if (lista.length === 0) return;
+            const geojson = {
+                type: 'FeatureCollection',
+                features: lista.map(ev => ({
+                    type: 'Feature',
+                    geometry: { type: 'Point', coordinates: [ev.longitud, ev.latitud] },
+                    properties: {
+                        id: ev.id, ods: ev.ods, severidad: ev.severidad,
+                        detalle: ev.detalle, fecha: ev.fecha, fuente: ev.fuente,
+                        urlOficial: ev.urlOficial || ''
+                    }
+                }))
+            };
+            const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: 'application/geo+json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `biosphere_eventos_${new Date().toISOString().slice(0, 10)}.geojson`;
+            a.click();
+        }
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition((pos) => {
+                miUbicacion = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                document.getElementById('gps-status').textContent = `GPS activo: ${miUbicacion.lat.toFixed(4)}, ${miUbicacion.lng.toFixed(4)}`;
+                socket.emit('consultar_mi_entorno', miUbicacion);
+                escanearEntornoDirecto(miUbicacion.lat, miUbicacion.lng);
+
+                L.circleMarker([miUbicacion.lat, miUbicacion.lng], {
+                    color: '#ffffff', fillColor: '#38bdf8', fillOpacity: 1, radius: 7, weight: 3
+                }).addTo(map).bindPopup('<b>📍 Tu Ubicación GPS Actual</b>');
+
+                actualizarRadioRadar();
+            }, () => {
+                document.getElementById('telemetria-local').innerHTML = '<span>⚠️ Activa el GPS para telemetría local y cálculo de distancias</span>';
+            });
+        }
+
+        socket.on('entorno_local', (env) => {
+            document.getElementById('telemetria-local').innerHTML = `
+                <span>📍 <strong>Tu Estación Local:</strong></span>
+                <span>🌡️ ${env.temp}°C</span>
+                <span>💧 ${env.humedad}%</span>
+                <span>💨 ${env.viento} km/h</span>
+                <span>🌫️ AQI: <strong>${env.aqi}</strong> (PM2.5: ${env.pm25} µg/m³)</span>
+            `;
         });
+
+        function calcularDistanciaKm(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+        }
+
+        function aplicarFiltro(filtro, btn) {
+            filtroActual = filtro;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderizarTodo();
+        }
+
+        function enfocarEvento(id, lat, lng) {
+            map.setView([lat, lng], 7);
+            if (marcadoresPorId[id]) marcadoresPorId[id].openPopup();
+        }
+
+        function renderizarTodo() {
+            capaMarcadores.clearLayers();
+            document.getElementById('lista-ods6').innerHTML = '';
+            document.getElementById('lista-ods14').innerHTML = '';
+            document.getElementById('lista-ods15').innerHTML = '';
+
+            let c6 = 0, c14 = 0, c15 = 0;
+            let criticos = 0, campo = 0;
+            const todosLosEventos = Array.from(mapaEventos.values());
+
+            todosLosEventos.forEach(ev => {
+                if (ev.severidad === 'CRÍTICO') criticos++;
+                if (ev.id.startsWith('campo-')) campo++;
+
+                if (filtroActual === 'CERCA') {
+                    if (!miUbicacion) return;
+                    const dist = calcularDistanciaKm(miUbicacion.lat, miUbicacion.lng, ev.latitud, ev.longitud);
+                    if (dist > radioKm) return;
+                }
+                if (filtroActual === 'CRÍTICO' && ev.severidad !== 'CRÍTICO') return;
+                if (filtroActual === 'NASA' && !ev.id.startsWith('nasa-')) return;
+                if (filtroActual === 'USGS' && !ev.id.startsWith('usgs-')) return;
+                if (filtroActual === 'CAMPO' && !ev.id.startsWith('campo-')) return;
+
+                let color = '#10b981', listaId = 'lista-ods15', clase = 'ods15';
+                if (ev.ods === 'ODS 6') { color = '#0ea5e9'; listaId = 'lista-ods6'; clase = 'ods6'; c6++; }
+                else if (ev.ods === 'ODS 14') { color = '#3b82f6'; listaId = 'lista-ods14'; clase = 'ods14'; c14++; }
+                else { c15++; }
+
+                if (ev.severidad === 'CRÍTICO') color = '#ef4444';
+
+                const distTexto = miUbicacion
+                    ? `📏 A ${calcularDistanciaKm(miUbicacion.lat, miUbicacion.lng, ev.latitud, ev.longitud).toLocaleString()} km`
+                    : `📍 ${ev.latitud.toFixed(2)}, ${ev.longitud.toFixed(2)}`;
+
+                const marker = L.circleMarker([ev.latitud, ev.longitud], {
+                    color,
+                    fillColor: color,
+                    fillOpacity: 0.78,
+                    radius: ev.severidad === 'CRÍTICO' ? 9 : 6,
+                    weight: 2
+                }).addTo(capaMarcadores);
+
+                marker.bindPopup(`
+                    <div style="color:#090d16; font-family:Inter,sans-serif; max-width:240px;">
+                        <strong style="font-size:12px;">${ev.detalle}</strong><br>
+                        <small>${ev.fuente} | <b>${ev.severidad}</b></small><br>
+                        <small>📍 ${ev.latitud.toFixed(4)}, ${ev.longitud.toFixed(4)}</small><br>
+                        <small>🕒 ${ev.fecha}</small>
+                    </div>
+                `);
+                marcadoresPorId[ev.id] = marker;
+
+                const card = document.createElement('div');
+                card.className = `incident-card ${clase}`;
+                card.innerHTML = `
+                    <div class="card-top">
+                        <span class="source-pill">${ev.fuente}</span>
+                        <span class="sev-pill sev-${ev.severidad}">${ev.severidad}</span>
+                    </div>
+                    <strong>${ev.detalle}</strong>
+                    <div class="weather-strip" id="clima-${ev.id}"></div>
+                    <div class="meta-row">
+                        <span>${distTexto}</span>
+                        <span>🕒 ${ev.fecha}</span>
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn-op btn-focus" onclick="enfocarEvento('${ev.id}', ${ev.latitud}, ${ev.longitud})">🎯 Mapa</button>
+                        <button class="btn-op btn-weather" onclick="analizarClimaEnZona('${ev.id}')">🌦️ Clima en Zona</button>
+                        <button class="btn-op btn-share" onclick="compartirAlertaReal('${ev.id}')">📲 Alertar</button>
+                        <a class="btn-op btn-link" href="${ev.urlOficial}" target="_blank" rel="noopener">🔗 Fuente</a>
+                    </div>
+                `;
+                document.getElementById(listaId).appendChild(card);
+            });
+
+            document.getElementById('count-ods6').textContent = c6;
+            document.getElementById('count-ods14').textContent = c14;
+            document.getElementById('count-ods15').textContent = c15;
+            document.getElementById('kpi-total').textContent = todosLosEventos.length;
+            document.getElementById('kpi-criticos').textContent = criticos;
+            document.getElementById('kpi-campo').textContent = campo;
+        }
+
+        function enviarReporteCampo(e) {
+            e.preventDefault();
+            const ods = document.getElementById('rep-ods').value;
+            const severidad = document.getElementById('rep-sev').value;
+            const detalle = document.getElementById('rep-desc').value.trim();
+
+            if (!detalle) return;
+            if (!navigator.geolocation) return alert('Tu navegador no soporta GPS.');
+
+            navigator.geolocation.getCurrentPosition((pos) => {
+                socket.emit('nuevo_reporte', {
+                    ods,
+                    severidad,
+                    detalle,
+                    latitud: pos.coords.latitude,
+                    longitud: pos.coords.longitude,
+                    fecha: new Date().toLocaleString()
+                });
+                document.getElementById('rep-desc').value = '';
+            }, () => alert('Activa el permiso GPS para registrar un incidente real.'));
+        }
+
+        socket.on('historial_radar', (payload) => {
+            const lista = Array.isArray(payload) ? payload : payload?.eventos;
+            if (lista) fusionarEventos(lista);
+        });
+
+        socket.on('actualizacion_radar', (nuevo) => {
+            if (nuevo) {
+                fusionarEventos([nuevo]);
+                enfocarEvento(nuevo.id, nuevo.latitud, nuevo.longitud);
+            }
+        });
+
+        sincronizarTodo();
     </script>
 </body>
 </html>
