@@ -5,118 +5,135 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BIOSPHERE | Centro de Comando Ambiental</title>
     
+    <!-- Mapas y Gráficos -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css" />
+    
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 
     <style>
         :root {
-            --bg-base: #090d16;
-            --bg-panel: #111827;
-            --bg-card: #1f2937;
-            --border: #374151;
-            --text-main: #f9fafb;
-            --text-muted: #9ca3af;
-            --ods6: #0ea5e9;
-            --ods14: #3b82f6;
-            --ods15: #10b981;
-            --critico: #ef4444;
+            /* MODO CLARO / LIGHT THEME */
+            --bg-base: #f1f5f9;       /* Gris muy suave para el fondo global */
+            --bg-panel: #ffffff;      /* Blanco puro para cabeceras y paneles */
+            --bg-card: #f8fafc;       /* Blanco apagado para tarjetas */
+            --border: #e2e8f0;        /* Bordes sutiles */
+            --text-main: #0f172a;     /* Texto principal oscuro */
+            --text-muted: #64748b;    /* Texto secundario */
+            
+            /* Colores de indicadores */
+            --ods6: #0284c7;          /* Azul agua */
+            --ods14: #2563eb;         /* Azul océano */
+            --ods15: #16a34a;         /* Verde bosque */
+            --critico: #dc2626;       /* Rojo alerta */
+            --alto: #d97706;          /* Naranja alerta */
+            --moderado: #059669;      /* Verde calma */
         }
 
         * { box-sizing: border-box; }
         body { font-family: 'Inter', sans-serif; background: var(--bg-base); color: var(--text-main); margin: 0; display: flex; flex-direction: column; min-height: 100vh; }
 
-        header { background: var(--bg-panel); padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 12px; }
-        .brand h1 { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: 0.5px; }
+        header { background: var(--bg-panel); padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.05); flex-wrap: wrap; gap: 12px; z-index: 10; }
+        .brand h1 { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: 0.5px; color: #0f172a; }
         .brand span { font-size: 12px; color: var(--text-muted); }
 
         .kpi-strip { display: flex; gap: 10px; flex-wrap: wrap; }
-        .kpi-box { background: var(--bg-base); border: 1px solid var(--border); padding: 6px 14px; border-radius: 8px; display: flex; flex-direction: column; }
+        .kpi-box { background: var(--bg-base); border: 1px solid var(--border); padding: 6px 14px; border-radius: 8px; display: flex; flex-direction: column; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02); }
         .kpi-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; }
-        .kpi-val { font-size: 15px; font-weight: 800; }
+        .kpi-val { font-size: 15px; font-weight: 800; color: #0f172a; }
 
         .status-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-        .live-pill { background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: #6ee7b7; padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 800; }
-        .btn-tool { background: #1e293b; border: 1px solid #475569; color: #e2e8f0; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer; transition: 0.2s; }
-        .btn-tool:hover { background: #334155; transform: translateY(-1px); }
+        .live-pill { background: #dcfce7; border: 1px solid #22c55e; color: #166534; padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 800; }
+        .btn-tool { background: #f8fafc; border: 1px solid #cbd5e1; color: #334155; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer; transition: 0.2s; }
+        .btn-tool:hover { background: #e2e8f0; transform: translateY(-1px); }
 
-        .action-bar { background: #0f172a; padding: 10px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; }
-        .local-telemetry { display: flex; align-items: center; gap: 12px; font-size: 12px; background: var(--bg-panel); padding: 7px 14px; border-radius: 8px; border: 1px solid var(--border); flex-wrap: wrap; }
-        .local-telemetry strong { color: #38bdf8; }
+        .action-bar { background: #ffffff; padding: 10px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; }
+        .local-telemetry { display: flex; align-items: center; gap: 12px; font-size: 12px; background: var(--bg-base); padding: 7px 14px; border-radius: 8px; border: 1px solid var(--border); flex-wrap: wrap; }
+        .local-telemetry strong { color: #0284c7; }
 
-        /* Login y Formulario */
+        /* Login y Formulario en Modo Claro */
         .report-form { display: none; gap: 8px; flex: 1; max-width: 760px; flex-wrap: wrap; animation: fadeIn 0.3s; }
         .report-form.active { display: flex; }
-        .locked-form { display: flex; gap: 12px; align-items: center; flex: 1; max-width: 760px; background: rgba(239, 68, 68, 0.1); padding: 8px 16px; border-radius: 8px; border: 1px dashed #ef4444; }
+        .locked-form { display: flex; gap: 12px; align-items: center; flex: 1; max-width: 760px; background: #fef2f2; padding: 8px 16px; border-radius: 8px; border: 1px dashed #ef4444; }
         
-        .report-form select, .report-form input { background: var(--bg-panel); border: 1px solid var(--border); color: white; padding: 8px 12px; border-radius: 8px; font-size: 12px; font-family: inherit; }
+        .report-form select, .report-form input { background: #ffffff; border: 1px solid #cbd5e1; color: #0f172a; padding: 8px 12px; border-radius: 8px; font-size: 12px; font-family: inherit; }
         .report-form input { flex: 1; min-width: 180px; }
         .btn-send { background: #ef4444; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 700; font-size: 12px; cursor: pointer; }
         .btn-send:hover { background: #dc2626; }
 
         .workspace { display: flex; flex-direction: column; flex: 1; padding: 16px 24px; gap: 16px; }
 
-        .map-wrapper { position: relative; width: 100%; height: 46vh; min-height: 320px; }
-        #mapa { width: 100%; height: 100%; border-radius: 12px; border: 1px solid var(--border); z-index: 1; background: #0b1120; }
+        /* Contenedor Superior: Mapa + Gráficos */
+        .dashboard-top { display: flex; gap: 16px; height: 42vh; min-height: 320px; flex-wrap: wrap; }
+        .map-wrapper { flex: 2; min-width: 300px; position: relative; border-radius: 12px; border: 1px solid var(--border); overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); background: #e2e8f0; }
+        #mapa { width: 100%; height: 100%; z-index: 1; }
         
-        /* Efecto Radar de Mapa Oscuro */
-        .mapa-infrarrojo { filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(92%); }
+        .charts-wrapper { flex: 1; min-width: 250px; display: flex; flex-direction: column; gap: 16px; }
+        .chart-box { flex: 1; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .chart-box h4 { margin: 0 0 8px 0; font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; width: 100%; text-align: left; }
+        .canvas-container { position: relative; width: 100%; height: 100%; max-height: 140px; }
 
-        /* Efecto Radar de Pulso */
-        .radar-pulse { border-radius: 50%; border: 2px solid #38bdf8; animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite; box-shadow: 0 0 15px rgba(56, 189, 248, 0.5); }
+        .radar-pulse { border-radius: 50%; border: 2px solid #0284c7; animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite; box-shadow: 0 0 15px rgba(2, 132, 199, 0.4); }
         @keyframes ping { 75%, 100% { transform: scale(3.5); opacity: 0; } }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 
         .filter-bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
         .filter-group { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-        .filter-btn { background: var(--bg-panel); border: 1px solid var(--border); color: var(--text-muted); padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; }
+        .filter-btn { background: var(--bg-panel); border: 1px solid var(--border); color: var(--text-muted); padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        .filter-btn:hover { background: #f1f5f9; }
         .filter-btn.active { background: #2563eb; color: white; border-color: #3b82f6; }
-        .radar-select { background: var(--bg-panel); color: #38bdf8; border: 1px solid var(--border); border-radius: 20px; padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; }
+        .radar-select { background: #ffffff; color: #0284c7; border: 1px solid #cbd5e1; border-radius: 20px; padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; }
 
         .triage-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-        .column { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; height: 48vh; min-height: 340px; }
+        .column { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; height: 35vh; min-height: 300px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
         .col-head { display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid var(--border); font-size: 13px; font-weight: 800; }
-        .badge-count { background: var(--bg-base); padding: 2px 9px; border-radius: 12px; font-size: 11px; }
+        .badge-count { background: #f1f5f9; color: #475569; padding: 2px 9px; border-radius: 12px; font-size: 11px; border: 1px solid #cbd5e1; }
 
         .cards-scroll { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 4px; }
-        .cards-scroll::-webkit-scrollbar { width: 5px; }
-        .cards-scroll::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 10px; }
+        .cards-scroll::-webkit-scrollbar { width: 6px; }
+        .cards-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 
-        .incident-card { background: var(--bg-card); border-radius: 8px; padding: 12px; border-left: 4px solid; font-size: 12px; display: flex; flex-direction: column; gap: 7px; transition: transform 0.2s ease; }
-        .incident-card:hover { background: #263244; transform: scale(1.01); }
+        .incident-card { background: var(--bg-card); border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; border-left: 4px solid; font-size: 12px; display: flex; flex-direction: column; gap: 7px; transition: transform 0.2s ease, box-shadow 0.2s; }
+        .incident-card:hover { transform: scale(1.01); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); background: #ffffff; }
         .incident-card.ods6 { border-left-color: var(--ods6); }
         .incident-card.ods14 { border-left-color: var(--ods14); }
         .incident-card.ods15 { border-left-color: var(--ods15); }
 
         .card-top { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
-        .source-pill { font-size: 10px; font-weight: 700; color: #38bdf8; background: rgba(56, 189, 248, 0.12); padding: 2px 7px; border-radius: 4px; }
+        .source-pill { font-size: 10px; font-weight: 700; color: #0369a1; background: #e0f2fe; padding: 2px 7px; border-radius: 4px; border: 1px solid #bae6fd; }
         .sev-pill { font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 4px; text-transform: uppercase; }
-        .sev-CRÍTICO { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid #ef4444; }
-        .sev-ALTO { background: rgba(245, 158, 11, 0.2); color: #fcd34d; border: 1px solid #f59e0b; }
-        .sev-MODERADO { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; border: 1px solid #10b981; }
+        .sev-CRÍTICO { background: #fef2f2; color: #b91c1c; border: 1px solid #fca5a5; }
+        .sev-ALTO { background: #fffbeb; color: #b45309; border: 1px solid #fcd34d; }
+        .sev-MODERADO { background: #ecfdf5; color: #047857; border: 1px solid #6ee7b7; }
 
-        .weather-strip { background: rgba(9, 13, 22, 0.75); padding: 6px 8px; border-radius: 6px; font-size: 11px; color: #bae6fd; border: 1px solid #1e3a5f; display: none; }
+        .weather-strip { background: #f8fafc; padding: 8px; border-radius: 6px; font-size: 11px; color: #334155; border: 1px solid #e2e8f0; display: none; }
         .meta-row { display: flex; justify-content: space-between; color: var(--text-muted); font-size: 11px; }
 
-        .card-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; padding-top: 8px; border-top: 1px solid #374151; }
-        .btn-op { border: none; padding: 5px 9px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
-        .btn-focus { background: #374151; color: #f3f4f6; }
-        .btn-weather { background: #0369a1; color: white; }
-        .btn-share { background: #15803d; color: white; }
-        .btn-link { background: #1e293b; border: 1px solid #475569; color: #93c5fd; }
+        .card-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; padding-top: 8px; border-top: 1px solid #e2e8f0; }
+        .btn-op { border: none; padding: 5px 9px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; transition: 0.1s; }
+        .btn-op:hover { filter: brightness(0.9); }
+        .btn-focus { background: #e2e8f0; color: #0f172a; }
+        .btn-weather { background: #0284c7; color: white; }
+        .btn-share { background: #16a34a; color: white; }
+        .btn-link { background: #f1f5f9; border: 1px solid #cbd5e1; color: #334155; }
 
-        /* Modal Login Estilos */
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+        /* Modal Login Blanco */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); z-index: 2000; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
         .modal-overlay.active { display: flex; }
-        .modal-content { background: var(--bg-panel); padding: 24px; border-radius: 12px; border: 1px solid var(--border); width: 300px; text-align: center; }
-        .modal-content h3 { margin-top: 0; color: #f9fafb; }
-        .modal-content input { width: 100%; padding: 10px; margin: 8px 0; background: var(--bg-base); border: 1px solid var(--border); color: white; border-radius: 6px; font-family: inherit; }
+        .modal-content { background: var(--bg-panel); padding: 24px; border-radius: 12px; border: 1px solid var(--border); width: 300px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
+        .modal-content h3 { margin-top: 0; color: #0f172a; }
+        .modal-content input { width: 100%; padding: 10px; margin: 8px 0; background: #f8fafc; border: 1px solid #cbd5e1; color: #0f172a; border-radius: 6px; font-family: inherit; }
         .modal-content button.btn-login { width: 100%; padding: 10px; background: #2563eb; color: white; border: none; border-radius: 6px; font-weight: bold; margin-top: 10px; cursor: pointer; }
-        .modal-content button.btn-login:hover { background: #1d4ed8; }
-        .modal-content button.btn-cancel { width: 100%; padding: 10px; background: transparent; color: #9ca3af; border: 1px solid #374151; border-radius: 6px; margin-top: 8px; cursor: pointer; }
+        .modal-content button.btn-cancel { width: 100%; padding: 10px; background: transparent; color: #64748b; border: 1px solid #cbd5e1; border-radius: 6px; margin-top: 8px; cursor: pointer; }
 
         @media (max-width: 960px) {
             .triage-grid { grid-template-columns: 1fr; }
+            .dashboard-top { flex-direction: column; height: auto; }
+            .map-wrapper { height: 40vh; }
         }
     </style>
 </head>
@@ -124,8 +141,8 @@
 
     <header>
         <div class="brand">
-            <h1>🌐 BIOSPHERE <span style="color:#38bdf8;">TELEMETRY</span></h1>
-            <span>Monitoreo Ambiental Satelital y Alerta Temprana en Tiempo Real</span>
+            <h1>🌐 BIOSPHERE <span style="color:#0284c7;">COMMAND CENTER</span></h1>
+            <span>Monitoreo Satelital | Dashboard Analítico</span>
         </div>
 
         <div class="kpi-strip">
@@ -135,82 +152,98 @@
             </div>
             <div class="kpi-box">
                 <span class="kpi-label">Severidad Crítica</span>
-                <span class="kpi-val" style="color:#ef4444;" id="kpi-criticos">0</span>
+                <span class="kpi-val" style="color:#dc2626;" id="kpi-criticos">0</span>
             </div>
             <div class="kpi-box">
-                <span class="kpi-label">Reportes en Campo</span>
-                <span class="kpi-val" style="color:#38bdf8;" id="kpi-campo">0</span>
+                <span class="kpi-label">Reportes de Campo</span>
+                <span class="kpi-val" style="color:#0284c7;" id="kpi-campo">0</span>
             </div>
         </div>
 
         <div class="status-actions">
-            <div class="live-pill" id="sensor-status">🛰️ CONECTANDO SATÉLITES...</div>
+            <div class="live-pill" id="sensor-status">🛰️ CONECTANDO...</div>
             
-            <!-- Buscador para Vuelo Táctico -->
             <div style="display: flex; gap: 5px; align-items: center;">
                 <input type="text" id="buscador-ciudad" placeholder="Vuelo táctico (ej. Tokio)..." 
-                       style="background: #1e293b; border: 1px solid #475569; color: white; padding: 6px 10px; border-radius: 6px; font-size: 11px; width: 160px;">
-                <button class="btn-tool" onclick="volarACiudad()" style="background: #2563eb; border-color: #3b82f6;">🚀 Volar</button>
+                       style="background: #ffffff; border: 1px solid #cbd5e1; color: #0f172a; padding: 6px 10px; border-radius: 6px; font-size: 11px; width: 160px;">
+                <button class="btn-tool" onclick="volarACiudad()" style="background: #2563eb; color: white; border-color: #3b82f6;">🚀 Volar</button>
             </div>
 
-            <button class="btn-tool" onclick="sincronizarTodo()">🔄 Actualizar Radar</button>
-            <button class="btn-tool" onclick="exportarCSV()">📥 Exportar CSV</button>
-            <button class="btn-tool" onclick="exportarGeoJSON()">🌍 GeoJSON</button>
+            <button class="btn-tool" onclick="sincronizarTodo()">🔄 Recargar Satélites</button>
+            <button class="btn-tool" onclick="exportarCSV()">📥 CSV</button>
         </div>
     </header>
 
     <div class="action-bar">
         <div class="local-telemetry" id="telemetria-local">
-            <span>📡 Escaneando estación GPS local...</span>
+            <span>📡 Buscando GPS...</span>
         </div>
 
         <div class="locked-form" id="locked-state">
-            <span style="font-size: 12px; font-weight: bold; color: #fca5a5;">🔒 Modo Observador. Para emitir alertas al mapa se requiere verificación.</span>
-            <button class="btn-tool" style="background: #ef4444; color: white; font-size: 12px; padding: 8px 14px;" onclick="abrirLogin()">🔑 Acceso ONG</button>
+            <span style="font-size: 12px; font-weight: bold; color: #b91c1c;">🔒 Solo el personal autorizado puede emitir alertas.</span>
+            <button class="btn-tool" style="background: #ef4444; color: white; border: none; font-size: 12px; padding: 8px 14px;" onclick="abrirLogin()">🔑 Acceso ONG</button>
         </div>
 
         <form class="report-form" id="active-form" onsubmit="enviarReporteCampo(event)">
             <select id="rep-ods" required>
-                <option value="ODS 6">💧 ODS 6 (Agua/Inundación)</option>
-                <option value="ODS 14">🌊 ODS 14 (Océano/Costas)</option>
-                <option value="ODS 15">🌳 ODS 15 (Bosques/Sismo)</option>
+                <option value="ODS 6">💧 ODS 6 (Hidrología)</option>
+                <option value="ODS 14">🌊 ODS 14 (Océanos)</option>
+                <option value="ODS 15">🌳 ODS 15 (Sismos/Suelo)</option>
             </select>
             <select id="rep-sev" required>
-                <option value="CRÍTICO">🚨 Severidad: Crítica</option>
-                <option value="ALTO">⚠️ Severidad: Alta</option>
-                <option value="MODERADO">ℹ️ Severidad: Moderada</option>
+                <option value="CRÍTICO">🚨 Riesgo Crítico</option>
+                <option value="ALTO">⚠️ Riesgo Alto</option>
+                <option value="MODERADO">ℹ️ Moderado</option>
             </select>
-            <input type="text" id="rep-desc" placeholder="Describa el desastre detectado en sus coordenadas GPS..." required />
-            <button type="submit" class="btn-send">📍 Registrar Alerta Global</button>
+            <input type="text" id="rep-desc" placeholder="Ingresa los detalles del desastre geolocalizado..." required />
+            <button type="submit" class="btn-send">📍 Transmitir al Mapa</button>
         </form>
     </div>
 
     <div class="workspace">
-        <div class="map-wrapper">
-            <div id="mapa"></div>
+        
+        <!-- NUEVO: Contenedor con Mapa y Gráficos -->
+        <div class="dashboard-top">
+            <div class="map-wrapper">
+                <div id="mapa"></div>
+            </div>
+            
+            <div class="charts-wrapper">
+                <div class="chart-box">
+                    <h4>Impacto por ODS</h4>
+                    <div class="canvas-container">
+                        <canvas id="chartODS"></canvas>
+                    </div>
+                </div>
+                <div class="chart-box">
+                    <h4>Niveles de Alerta</h4>
+                    <div class="canvas-container">
+                        <canvas id="chartSev"></canvas>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="filter-bar">
             <div class="filter-group">
-                <button class="filter-btn active" onclick="aplicarFiltro('TODOS', this)">Todos los Eventos</button>
+                <button class="filter-btn active" onclick="aplicarFiltro('TODOS', this)">Global</button>
                 <button class="filter-btn" onclick="aplicarFiltro('CERCA', this)">📡 En mi Radio</button>
-                <button class="filter-btn" onclick="aplicarFiltro('CRÍTICO', this)">🚨 Solo Críticos</button>
-                <button class="filter-btn" onclick="aplicarFiltro('NASA', this)">🛰️ NASA EONET</button>
-                <button class="filter-btn" onclick="aplicarFiltro('USGS', this)">🌋 Sismos USGS</button>
-                <button class="filter-btn" onclick="aplicarFiltro('CAMPO', this)">📍 Reportes ONG</button>
+                <button class="filter-btn" onclick="aplicarFiltro('CRÍTICO', this)">🚨 Críticos</button>
+                <button class="filter-btn" onclick="aplicarFiltro('NASA', this)">🛰️ NASA</button>
+                <button class="filter-btn" onclick="aplicarFiltro('USGS', this)">🌋 Sismos</button>
+                <button class="filter-btn" onclick="aplicarFiltro('CAMPO', this)">📍 Base de Datos Local</button>
                 <select id="radio-radar" class="radar-select" onchange="actualizarRadioRadar()">
-                    <option value="300">Radio: 300 km</option>
-                    <option value="800" selected>Radio: 800 km</option>
-                    <option value="2000">Radio: 2,000 km</option>
+                    <option value="300">Radar: 300 km</option>
+                    <option value="800" selected>Radar: 800 km</option>
+                    <option value="2000">Radar: 2,000 km</option>
                 </select>
             </div>
-            <span style="font-size:11px; color:var(--text-muted);" id="gps-status">Ubicación base: esperando permiso GPS...</span>
         </div>
 
         <div class="triage-grid">
             <div class="column">
                 <div class="col-head" style="color:var(--ods6);">
-                    <span>💧 ODS 6: Agua, Caudales e Inundaciones</span>
+                    <span>💧 ODS 6: Agua e Hidrología</span>
                     <span class="badge-count" id="count-ods6">0</span>
                 </div>
                 <div class="cards-scroll" id="lista-ods6"></div>
@@ -218,7 +251,7 @@
 
             <div class="column">
                 <div class="col-head" style="color:var(--ods14);">
-                    <span>🌊 ODS 14: Océanos, Tormentas y Tsunamis</span>
+                    <span>🌊 ODS 14: Vida Submarina y Costas</span>
                     <span class="badge-count" id="count-ods14">0</span>
                 </div>
                 <div class="cards-scroll" id="lista-ods14"></div>
@@ -226,7 +259,7 @@
 
             <div class="column">
                 <div class="col-head" style="color:var(--ods15);">
-                    <span>🌳 ODS 15: Bosques, Atmósfera y Sismos</span>
+                    <span>🌳 ODS 15: Tierra, Atmósfera y Sismos</span>
                     <span class="badge-count" id="count-ods15">0</span>
                 </div>
                 <div class="cards-scroll" id="lista-ods15"></div>
@@ -237,11 +270,11 @@
     <!-- Modal Login -->
     <div class="modal-overlay" id="login-modal">
         <div class="modal-content">
-            <h3>🔒 Acceso Operativo</h3>
-            <p style="font-size:12px; color:#9ca3af; margin-bottom:15px;">Identificación requerida para emitir alertas. <br>(Prueba con: admin / ong2026)</p>
-            <input type="text" id="l-user" placeholder="Usuario">
+            <h3>🔒 Acceso Oficial</h3>
+            <p style="font-size:12px; color:#64748b; margin-bottom:15px;">Inicie sesión para acceder a la transmisión.<br>(Usuario: admin / Clave: ong2026)</p>
+            <input type="text" id="l-user" placeholder="Nombre de usuario">
             <input type="password" id="l-pwd" placeholder="Contraseña">
-            <button class="btn-login" onclick="intentarLogin()">Verificar Identidad</button>
+            <button class="btn-login" onclick="intentarLogin()">Ingresar al Sistema</button>
             <button class="btn-cancel" onclick="cerrarLogin()">Cancelar</button>
         </div>
     </div>
@@ -250,16 +283,70 @@
     <script>
         const socket = io();
 
-        const map = L.map('mapa', {
-            worldCopyJump: true,
-            minZoom: 2
-        });
-        map.fitBounds([[-55, -165], [72, 165]]);
+        // INICIALIZACIÓN DE GRÁFICOS (CHART.JS)
+        let chartODS, chartSev;
+        
+        function iniciarGraficos() {
+            const ctxODS = document.getElementById('chartODS').getContext('2d');
+            chartODS = new Chart(ctxODS, {
+                type: 'doughnut',
+                data: {
+                    labels: ['ODS 6 (Agua)', 'ODS 14 (Océanos)', 'ODS 15 (Tierra)'],
+                    datasets: [{
+                        data: [0, 0, 0],
+                        backgroundColor: ['#0284c7', '#2563eb', '#16a34a'],
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '65%',
+                    plugins: { legend: { display: false } }
+                }
+            });
 
-        // CONFIGURACIÓN DE CÁMARAS MULTIESPECTRALES
-        const mapaOscuro = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            className: 'mapa-infrarrojo',
-            attribution: '© OpenStreetMap'
+            const ctxSev = document.getElementById('chartSev').getContext('2d');
+            chartSev = new Chart(ctxSev, {
+                type: 'bar',
+                data: {
+                    labels: ['Crítico', 'Alto', 'Moderado'],
+                    datasets: [{
+                        data: [0, 0, 0],
+                        backgroundColor: ['#dc2626', '#d97706', '#059669'],
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, display: false },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+        iniciarGraficos();
+
+        function actualizarGraficos(d6, d14, d15, c, a, m) {
+            if(chartODS) {
+                chartODS.data.datasets[0].data = [d6, d14, d15];
+                chartODS.update();
+            }
+            if(chartSev) {
+                chartSev.data.datasets[0].data = [c, a, m];
+                chartSev.update();
+            }
+        }
+
+        // CONFIGURACIÓN DEL MAPA CLARO
+        const map = L.map('mapa', { worldCopyJump: true, minZoom: 2 }).fitBounds([[-55, -165], [72, 165]]);
+
+        const mapaClaro = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+            attribution: '© Esri — Navteq, DeLorme'
         });
 
         const sateliteReal = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
@@ -270,18 +357,20 @@
             attribution: '© OpenTopoMap'
         });
 
-        mapaOscuro.addTo(map);
+        mapaClaro.addTo(map);
 
         const capasBase = {
-            "🖥️ Radar Infrarrojo": mapaOscuro,
-            "🌍 Satélite Real": sateliteReal,
-            "⛰️ Relieve Topográfico": topografico
+            "🗺️ Base Clara": mapaClaro,
+            "🌍 Satélite Fotográfico": sateliteReal,
+            "⛰️ Relieve y Montañas": topografico
         };
         L.control.layers(capasBase).addTo(map);
 
         setTimeout(() => map.invalidateSize(), 200);
 
-        const capaMarcadores = L.layerGroup().addTo(map);
+        // SE ACTUALIZA A MARKERCLUSTERGROUP PARA AGRUPAR LOS PINES
+        const capaMarcadores = L.markerClusterGroup().addTo(map);
+        
         const marcadoresPorId = {};
         const mapaEventos = new Map();
         let filtroActual = 'TODOS';
@@ -296,11 +385,11 @@
                 if (circuloRadar) map.removeLayer(circuloRadar);
                 circuloRadar = L.circle([miUbicacion.lat, miUbicacion.lng], {
                     radius: radioKm * 1000,
-                    color: '#38bdf8',
-                    fillColor: '#38bdf8',
-                    fillOpacity: 0.06,
+                    color: '#0284c7',
+                    fillColor: '#0284c7',
+                    fillOpacity: 0.05,
                     weight: 1.5,
-                    dashArray: '6, 6'
+                    dashArray: '4, 4'
                 }).addTo(map);
             }
             renderizarTodo();
@@ -309,14 +398,13 @@
         const leyenda = L.control({ position: 'bottomleft' });
         leyenda.onAdd = () => {
             const div = L.DomUtil.create('div');
-            div.style.cssText = 'background:#111827ee; color:#f9fafb; padding:8px 12px; border-radius:8px; border:1px solid #374151; font-size:11px; line-height:1.6;';
+            div.style.cssText = 'background:#ffffffcc; color:#0f172a; padding:8px 12px; border-radius:8px; border:1px solid #cbd5e1; font-size:11px; line-height:1.6; backdrop-filter: blur(4px); box-shadow: 0 2px 4px rgba(0,0,0,0.1);';
             div.innerHTML = `
-                <strong>Simbología:</strong><br>
-                <span style="color:#ef4444;">●</span> Crítico &nbsp;
-                <span style="color:#0ea5e9;">●</span> ODS 6 &nbsp;
-                <span style="color:#3b82f6;">●</span> ODS 14 &nbsp;
-                <span style="color:#10b981;">●</span> ODS 15 &nbsp;
-                <span style="color:#38bdf8;">◉</span> Radar
+                <strong>Leyenda:</strong><br>
+                <span style="color:#dc2626;">●</span> Crítico &nbsp;
+                <span style="color:#0284c7;">●</span> ODS 6 &nbsp;
+                <span style="color:#2563eb;">●</span> ODS 14 &nbsp;
+                <span style="color:#16a34a;">●</span> ODS 15
             `;
             return div;
         };
@@ -337,13 +425,12 @@
             const usgs = arr.filter(e => e.id.startsWith('usgs-')).length;
             const rios = arr.filter(e => e.id.startsWith('rio-')).length;
             const aire = arr.filter(e => e.id.startsWith('aire-')).length;
-            const campo = arr.filter(e => e.id.startsWith('campo-')).length;
             document.getElementById('sensor-status').textContent =
-                `🛰️ NASA: ${nasa} | USGS: ${usgs} | RÍOS: ${rios} | AIRE: ${aire} | ONG: ${campo}`;
+                `🛰️ NASA: ${nasa} | USGS: ${usgs} | HIDRO: ${rios} | ATM: ${aire}`;
         }
 
         async function sincronizarTodo() {
-            document.getElementById('sensor-status').textContent = '🛰️ SINCRONIZANDO CON SATÉLITES...';
+            document.getElementById('sensor-status').textContent = '🛰️ DESCARGANDO TELEMETRÍA...';
             try {
                 const res = await fetch('/api/telemetria?forzar=1');
                 const data = await res.json();
@@ -358,12 +445,12 @@
             const box = document.getElementById(`clima-${id}`);
             if (box) {
                 box.style.display = 'block';
-                box.innerHTML = '⏳ Consultando estación meteorológica...';
+                box.innerHTML = '⏳ Obteniendo datos atmosféricos...';
             }
 
             try {
                 const [clima, aire] = await Promise.all([
-                    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${ev.latitud}&longitude=${ev.longitud}&current=temperature_2m,precipitation,wind_speed_10m,wind_direction_10m`).then(r => r.json()),
+                    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${ev.latitud}&longitude=${ev.longitud}&current=temperature_2m,precipitation,wind_speed_10m`).then(r => r.json()),
                     fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${ev.latitud}&longitude=${ev.longitud}&current=us_aqi,pm2_5`).then(r => r.json())
                 ]);
 
@@ -371,69 +458,25 @@
                 const lluvia = clima.current?.precipitation ?? 0;
                 const viento = clima.current?.wind_speed_10m ?? '--';
                 const aqi = aire.current?.us_aqi ?? '--';
-                const pm25 = aire.current?.pm2_5 ?? '--';
 
                 if (box) {
-                    box.innerHTML = `📡 <strong>Condiciones en zona:</strong> 🌡️ ${temp}°C | 🌧️ Lluvia: ${lluvia} mm | 💨 Viento: ${viento} km/h | 🌫️ AQI: ${aqi} (PM2.5: ${pm25})`;
+                    box.innerHTML = `📡 <strong>Estación Local:</strong> 🌡️ ${temp}°C | 🌧️ Lluvia: ${lluvia}mm | 💨 Viento: ${viento}km/h | 🌫️ AQI: ${aqi}`;
                 }
             } catch {
-                if (box) box.innerHTML = '⚠️ No se pudo obtener telemetría local.';
+                if (box) box.innerHTML = '⚠️ Señal perdida con el satélite atmosférico.';
             }
-        }
-
-        function compartirAlertaReal(id) {
-            const ev = mapaEventos.get(id);
-            if (!ev) return;
-
-            const mapsLink = `https://www.google.com/maps?q=${ev.latitud},${ev.longitud}`;
-            const texto = `🚨 ALERTA BIOSPHERE (${ev.ods} - ${ev.severidad})\n` +
-                          `• Evento: ${ev.detalle}\n` +
-                          `• Fuente: ${ev.fuente}\n` +
-                          `• Ubicación exacta: ${mapsLink}\n` +
-                          `• Fecha/Hora: ${ev.fecha}`;
-
-            window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank');
         }
 
         function exportarCSV() {
             const lista = Array.from(mapaEventos.values());
             if (lista.length === 0) return;
-            const filas = [['ID', 'ODS', 'Severidad', 'Detalle', 'Latitud', 'Longitud', 'Fecha', 'Fuente', 'Enlace_Oficial']];
+            const filas = [['ID', 'ODS', 'Severidad', 'Detalle', 'Latitud', 'Longitud', 'Fecha', 'Fuente']];
             lista.forEach(ev => {
-                filas.push([
-                    ev.id, ev.ods, ev.severidad,
-                    `"${ev.detalle.replace(/"/g, '""')}"`,
-                    ev.latitud, ev.longitud,
-                    `"${ev.fecha}"`, `"${ev.fuente}"`,
-                    ev.urlOficial || ''
-                ]);
+                filas.push([ev.id, ev.ods, ev.severidad, `"${ev.detalle.replace(/"/g, '""')}"`, ev.latitud, ev.longitud, `"${ev.fecha}"`, `"${ev.fuente}"`]);
             });
             const blob = new Blob([filas.map(f => f.join(',')).join('\n')], { type: 'text/csv;charset=utf-8;' });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = `biosphere_telemetria_${new Date().toISOString().slice(0, 10)}.csv`;
-            a.click();
-        }
-
-        function exportarGeoJSON() {
-            const lista = Array.from(mapaEventos.values());
-            if (lista.length === 0) return;
-            const geojson = {
-                type: 'FeatureCollection',
-                features: lista.map(ev => ({
-                    type: 'Feature',
-                    geometry: { type: 'Point', coordinates: [ev.longitud, ev.latitud] },
-                    properties: {
-                        id: ev.id, ods: ev.ods, severidad: ev.severidad,
-                        detalle: ev.detalle, fecha: ev.fecha, fuente: ev.fuente,
-                        urlOficial: ev.urlOficial || ''
-                    }
-                }))
-            };
-            const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: 'application/geo+json' });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = `biosphere_eventos_${new Date().toISOString().slice(0, 10)}.geojson`;
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+            a.download = `biosphere_reporte_${new Date().toISOString().slice(0, 10)}.csv`;
             a.click();
         }
 
@@ -441,9 +484,7 @@
             const R = 6371;
             const dLat = (lat2 - lat1) * Math.PI / 180;
             const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
             return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
         }
 
@@ -455,7 +496,7 @@
         }
 
         function enfocarEvento(id, lat, lng) {
-            map.setView([lat, lng], 7);
+            map.setView([lat, lng], 8, { animate: true, duration: 1.5 });
             if (marcadoresPorId[id]) marcadoresPorId[id].openPopup();
         }
 
@@ -466,13 +507,19 @@
             document.getElementById('lista-ods15').innerHTML = '';
 
             let c6 = 0, c14 = 0, c15 = 0;
-            let criticos = 0, campo = 0;
+            let c_crit = 0, c_alto = 0, c_mod = 0;
+            let campo = 0;
             const todosLosEventos = Array.from(mapaEventos.values());
 
             todosLosEventos.forEach(ev => {
-                if (ev.severidad === 'CRÍTICO') criticos++;
+                // Conteos globales para gráficos
+                if (ev.severidad === 'CRÍTICO') c_crit++;
+                else if (ev.severidad === 'ALTO') c_alto++;
+                else c_mod++;
+
                 if (ev.id.startsWith('campo-')) campo++;
 
+                // Filtros de vista
                 if (filtroActual === 'CERCA') {
                     if (!miUbicacion) return;
                     const dist = calcularDistanciaKm(miUbicacion.lat, miUbicacion.lng, ev.latitud, ev.longitud);
@@ -483,27 +530,28 @@
                 if (filtroActual === 'USGS' && !ev.id.startsWith('usgs-')) return;
                 if (filtroActual === 'CAMPO' && !ev.id.startsWith('campo-')) return;
 
-                let color = '#10b981', listaId = 'lista-ods15', clase = 'ods15';
-                if (ev.ods === 'ODS 6') { color = '#0ea5e9'; listaId = 'lista-ods6'; clase = 'ods6'; c6++; }
-                else if (ev.ods === 'ODS 14') { color = '#3b82f6'; listaId = 'lista-ods14'; clase = 'ods14'; c14++; }
+                let color = '#16a34a', listaId = 'lista-ods15', clase = 'ods15';
+                if (ev.ods === 'ODS 6') { color = '#0284c7'; listaId = 'lista-ods6'; clase = 'ods6'; c6++; }
+                else if (ev.ods === 'ODS 14') { color = '#2563eb'; listaId = 'lista-ods14'; clase = 'ods14'; c14++; }
                 else { c15++; }
 
-                if (ev.severidad === 'CRÍTICO') color = '#ef4444';
+                if (ev.severidad === 'CRÍTICO') color = '#dc2626';
 
                 const distTexto = miUbicacion
                     ? `📏 A ${calcularDistanciaKm(miUbicacion.lat, miUbicacion.lng, ev.latitud, ev.longitud).toLocaleString()} km`
                     : `📍 ${ev.latitud.toFixed(2)}, ${ev.longitud.toFixed(2)}`;
 
                 const marker = L.circleMarker([ev.latitud, ev.longitud], {
-                    color, fillColor: color, fillOpacity: 0.78,
-                    radius: ev.severidad === 'CRÍTICO' ? 9 : 6, weight: 2
+                    color: '#ffffff', fillColor: color, fillOpacity: 0.9,
+                    radius: ev.severidad === 'CRÍTICO' ? 9 : 7, weight: 1.5,
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
                 }).addTo(capaMarcadores);
 
                 marker.bindPopup(`
-                    <div style="color:#090d16; font-family:Inter,sans-serif; max-width:240px;">
-                        <strong style="font-size:12px;">${ev.detalle}</strong><br>
-                        <small>${ev.fuente} | <b>${ev.severidad}</b></small><br>
-                        <small>📍 ${ev.latitud.toFixed(4)}, ${ev.longitud.toFixed(4)}</small>
+                    <div style="font-family:Inter,sans-serif; text-align:center; max-width:220px;">
+                        <strong style="color:#0f172a;">${ev.detalle}</strong><br>
+                        <span style="font-size:11px; color:#64748b;">${ev.fuente}</span><br>
+                        <span style="font-size:10px; padding:2px 6px; background:#f1f5f9; border-radius:4px;"><b>${ev.severidad}</b></span>
                     </div>
                 `);
                 marcadoresPorId[ev.id] = marker;
@@ -515,17 +563,15 @@
                         <span class="source-pill">${ev.fuente}</span>
                         <span class="sev-pill sev-${ev.severidad}">${ev.severidad}</span>
                     </div>
-                    <strong>${ev.detalle}</strong>
+                    <strong style="color:#0f172a;">${ev.detalle}</strong>
                     <div class="weather-strip" id="clima-${ev.id}"></div>
                     <div class="meta-row">
                         <span>${distTexto}</span>
                         <span>🕒 ${ev.fecha.split(',')[1] || ev.fecha}</span>
                     </div>
                     <div class="card-actions">
-                        <button class="btn-op btn-focus" onclick="enfocarEvento('${ev.id}', ${ev.latitud}, ${ev.longitud})">🎯 Mapa</button>
+                        <button class="btn-op btn-focus" onclick="enfocarEvento('${ev.id}', ${ev.latitud}, ${ev.longitud})">🎯 Ubicar</button>
                         <button class="btn-op btn-weather" onclick="analizarClimaEnZona('${ev.id}')">🌦️ Clima</button>
-                        <button class="btn-op btn-share" onclick="compartirAlertaReal('${ev.id}')">📲 Alertar</button>
-                        <a class="btn-op btn-link" href="${ev.urlOficial}" target="_blank" rel="noopener">🔗 Info</a>
                     </div>
                 `;
                 document.getElementById(listaId).appendChild(card);
@@ -535,31 +581,33 @@
             document.getElementById('count-ods14').textContent = c14;
             document.getElementById('count-ods15').textContent = c15;
             document.getElementById('kpi-total').textContent = todosLosEventos.length;
-            document.getElementById('kpi-criticos').textContent = criticos;
+            document.getElementById('kpi-criticos').textContent = c_crit;
             document.getElementById('kpi-campo').textContent = campo;
+
+            // Actualizar los gráficos en vivo
+            actualizarGraficos(c6, c14, c15, c_crit, c_alto, c_mod);
         }
 
+        // GEOLOCALIZACIÓN
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition((pos) => {
                 miUbicacion = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                document.getElementById('gps-status').textContent = `📍 Satélite GPS Localizado (${miUbicacion.lat.toFixed(2)}, ${miUbicacion.lng.toFixed(2)})`;
+                document.getElementById('telemetria-local').innerHTML = `<span>📍 Escuadrón activo: ${miUbicacion.lat.toFixed(2)}, ${miUbicacion.lng.toFixed(2)}</span>`;
                 
                 socket.emit('consultar_mi_entorno', miUbicacion);
 
-                const iconRadar = L.divIcon({ className: 'radar-pulse', iconSize: [30, 30] });
+                const iconRadar = L.divIcon({ className: 'radar-pulse', iconSize: [40, 40] });
                 if(gpsMarker) map.removeLayer(gpsMarker);
                 gpsMarker = L.layerGroup([
                     L.marker([miUbicacion.lat, miUbicacion.lng], { icon: iconRadar }),
-                    L.circleMarker([miUbicacion.lat, miUbicacion.lng], { color: '#ffffff', fillColor: '#38bdf8', fillOpacity: 1, radius: 6, weight: 2 })
+                    L.circleMarker([miUbicacion.lat, miUbicacion.lng], { color: '#ffffff', fillColor: '#0284c7', fillOpacity: 1, radius: 7, weight: 2 })
                 ]).addTo(map);
 
                 actualizarRadioRadar();
-            }, () => {
-                document.getElementById('telemetria-local').innerHTML = '<span>⚠️ Activa el GPS para telemetría local y cálculo de distancias</span>';
             });
         }
 
-        // FUNCIONES DE LOGIN Y REPORTES
+        // LOGIN Y FORMULARIO
         function abrirLogin() { document.getElementById('login-modal').classList.add('active'); }
         function cerrarLogin() { document.getElementById('login-modal').classList.remove('active'); }
         
@@ -571,17 +619,13 @@
                     cerrarLogin();
                     document.getElementById('locked-state').style.display = 'none';
                     document.getElementById('active-form').classList.add('active');
-                    alert('🔑 Autenticación exitosa. Panel de reportes habilitado.');
-                } else {
-                    alert('❌ Credenciales incorrectas. Acceso denegado.');
-                }
+                } else alert('❌ Credenciales inválidas.');
             });
         }
 
         function enviarReporteCampo(e) {
             e.preventDefault();
-            if (!miUbicacion) return alert('Debes tener el GPS activado para reportar un evento.');
-            
+            if (!miUbicacion) return alert('GPS inactivo. No se puede verificar origen.');
             socket.emit('nuevo_reporte', {
                 ods: document.getElementById('rep-ods').value,
                 severidad: document.getElementById('rep-sev').value,
@@ -590,118 +634,64 @@
                 longitud: miUbicacion.lng,
                 fecha: new Date().toLocaleString()
             });
-            
             document.getElementById('rep-desc').value = '';
-            alert('📡 Alerta enviada y sincronizada en tiempo real con la red global.');
         }
 
-        // WEBSOCKETS
-        socket.on('historial_radar', (payload) => {
-            const lista = Array.isArray(payload) ? payload : payload?.eventos;
-            if (lista) fusionarEventos(lista);
-        });
-
-        socket.on('actualizacion_radar', (nuevo) => {
-            if (nuevo) {
-                fusionarEventos([nuevo]);
-                enfocarEvento(nuevo.id, nuevo.latitud, nuevo.longitud);
-            }
-        });
-
+        // WEBSOCKETS Y VUELO TÁCTICO
+        socket.on('historial_radar', (p) => { if(p?.eventos) fusionarEventos(p.eventos); });
+        socket.on('actualizacion_radar', (n) => { fusionarEventos([n]); enfocarEvento(n.id, n.latitud, n.longitud); });
+        
         socket.on('entorno_local', (env) => {
-            document.getElementById('telemetria-local').innerHTML = `
-                <span>📍 <strong>Tu Estación:</strong></span>
-                <span>🌡️ ${env.temp}°C</span>
-                <span>💧 ${env.humedad}%</span>
-                <span>💨 ${env.viento} km/h</span>
-                <span>🌫️ AQI: <strong>${env.aqi}</strong> (PM2.5: ${env.pm25} µg/m³)</span>
+            document.getElementById('telemetria-local').innerHTML += `
+                <span style="margin-left:8px; border-left:1px solid #cbd5e1; padding-left:12px;">🌡️ ${env.temp}°C | 💨 ${env.viento} km/h | 🌫️ AQI: <strong>${env.aqi}</strong></span>
             `;
         });
 
-        // NUEVO: ESCÁNER TÁCTICO POR CLIC EN EL MAPA
-        let pinPersonalizado = null;
-
-        map.on('click', async function(e) {
-            const lat = e.latlng.lat;
-            const lng = e.latlng.lng;
-
-            if (pinPersonalizado) map.removeLayer(pinPersonalizado);
-            pinPersonalizado = L.marker([lat, lng]).addTo(map)
-                .bindPopup('⏳ Escaneando atmósfera y clima...')
-                .openPopup();
-
-            try {
-                const [resClima, resAire] = await Promise.all([
-                    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,wind_speed_10m,precipitation`).then(r => r.json()),
-                    fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lng}&current=us_aqi,pm2_5`).then(r => r.json())
-                ]);
-
-                const temp = resClima.current?.temperature_2m ?? '--';
-                const viento = resClima.current?.wind_speed_10m ?? '--';
-                const lluvia = resClima.current?.precipitation ?? '--';
-                const aqi = resAire.current?.us_aqi ?? '--';
-                
-                let riesgo = "✅ Zona Estable";
-                let color = "#10b981";
-                if (aqi > 100 || viento > 40) { riesgo = "⚠️ Riesgo Moderado"; color = "#f59e0b"; }
-                if (aqi > 150 || viento > 70) { riesgo = "🚨 Riesgo Crítico"; color = "#ef4444"; }
-
-                pinPersonalizado.setPopupContent(`
-                    <div style="font-family:Inter,sans-serif; text-align:center;">
-                        <strong style="color:${color};">${riesgo}</strong><br>
-                        <small>📍 ${lat.toFixed(2)}, ${lng.toFixed(2)}</small>
-                        <hr style="margin:5px 0; border:0; border-top:1px solid #ddd;">
-                        🌡️ Temp: ${temp}°C | 💨 Viento: ${viento}km/h<br>
-                        🌧️ Lluvia: ${lluvia}mm | 🌫️ AQI: ${aqi}
-                        <br>
-                        <button onclick="copiarCoordenadas(${lat}, ${lng})" style="margin-top:8px; background:#1e293b; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:10px;">📋 Copiar Coordenadas</button>
-                    </div>
-                `);
-            } catch (error) {
-                pinPersonalizado.setPopupContent('⚠️ Satélites fuera de alcance en esta zona.');
-            }
-        });
-
-        window.copiarCoordenadas = function(lat, lng) {
-            navigator.clipboard.writeText(`${lat.toFixed(5)}, ${lng.toFixed(5)}`);
-            alert("Coordenadas copiadas.");
-        };
-
-        // NUEVO: VUELO TÁCTICO
         async function volarACiudad() {
             const ciudad = document.getElementById('buscador-ciudad').value.trim();
             if (!ciudad) return;
-
-            const btn = document.querySelector('button[onclick="volarACiudad()"]');
-            btn.textContent = "⏳...";
+            document.querySelector('button[onclick="volarACiudad()"]').textContent = "⏳...";
 
             try {
                 const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(ciudad)}`);
                 const datos = await res.json();
-
                 if (datos.length > 0) {
-                    const lat = parseFloat(datos[0].lat);
-                    const lng = parseFloat(datos[0].lon);
-
+                    const lat = parseFloat(datos[0].lat), lng = parseFloat(datos[0].lon);
                     map.flyTo([lat, lng], 10, { animate: true, duration: 2 });
-
-                    setTimeout(() => {
-                        map.fire('click', { latlng: L.latLng(lat, lng) });
-                    }, 2500);
-
+                    setTimeout(() => map.fire('click', { latlng: L.latLng(lat, lng) }), 2200);
                     document.getElementById('buscador-ciudad').value = '';
-                } else {
-                    alert('❌ Satélites no encontraron esa ubicación.');
-                }
-            } catch (e) {
-                alert('⚠️ Error de conexión.');
-            } finally {
-                btn.textContent = "🚀 Volar";
-            }
+                } else alert('❌ Destino no localizado.');
+            } catch (e) { alert('⚠️ Falla de satélite.'); }
+            document.querySelector('button[onclick="volarACiudad()"]').textContent = "🚀 Volar";
         }
+        document.getElementById('buscador-ciudad').addEventListener('keypress', e => { if (e.key === 'Enter') volarACiudad(); });
 
-        document.getElementById('buscador-ciudad').addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') volarACiudad();
+        let pinPersonalizado = null;
+        map.on('click', async function(e) {
+            const lat = e.latlng.lat, lng = e.latlng.lng;
+            if (pinPersonalizado) map.removeLayer(pinPersonalizado);
+            pinPersonalizado = L.marker([lat, lng]).addTo(map).bindPopup('⏳ Analizando sector...').openPopup();
+
+            try {
+                const [resClima, resAire] = await Promise.all([
+                    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,wind_speed_10m`).then(r => r.json()),
+                    fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lng}&current=us_aqi`).then(r => r.json())
+                ]);
+                const temp = resClima.current?.temperature_2m ?? '--', viento = resClima.current?.wind_speed_10m ?? '--', aqi = resAire.current?.us_aqi ?? '--';
+                
+                let riesgo = "✅ Sin Anomalías", color = "#16a34a";
+                if (aqi > 100 || viento > 40) { riesgo = "⚠️ Precaución", color = "#d97706"; }
+                if (aqi > 150 || viento > 70) { riesgo = "🚨 Alerta Zonal", color = "#dc2626"; }
+
+                pinPersonalizado.setPopupContent(`
+                    <div style="font-family:Inter,sans-serif; text-align:center;">
+                        <strong style="color:${color};">${riesgo}</strong><br>
+                        <small style="color:#64748b;">📍 ${lat.toFixed(2)}, ${lng.toFixed(2)}</small><hr style="margin:5px 0; border:0; border-top:1px solid #e2e8f0;">
+                        🌡️ ${temp}°C | 💨 ${viento}km/h | 🌫️ AQI: ${aqi}<br>
+                        <button onclick="navigator.clipboard.writeText('${lat.toFixed(4)}, ${lng.toFixed(4)}')" style="margin-top:8px; background:#f1f5f9; color:#0f172a; border:1px solid #cbd5e1; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:10px;">📋 Copiar Coordenadas</button>
+                    </div>
+                `);
+            } catch { pinPersonalizado.setPopupContent('⚠️ Datos no disponibles en esta cuadrícula.'); }
         });
 
         sincronizarTodo();
