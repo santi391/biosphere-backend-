@@ -55,27 +55,25 @@ async function obtenerTelemetriaGlobal(forzar = false) {
         return cacheSatelital;
     }
 
-    if (promesaEnCurso) {
-        return await promesaEnCurso;
-    }
+    if (promesaEnCurso) return await promesaEnCurso;
 
     promesaEnCurso = (async () => {
         const eventos = [];
         let cNasa = 0, cUsgs = 0, cRios = 0, cAire = 0;
 
+        // Límites ampliados para NASA (limit=100) y USGS (all_day) para captar más incidentes
         const [resNasa, resUsgs, resRios, resAire] = await Promise.allSettled([
-            fetchConTimeout('https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=30'),
-            fetchConTimeout('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson'),
+            fetchConTimeout('https://eonet.gsfc.nasa.gov/api/v3/events?limit=100'),
+            fetchConTimeout('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson'),
             fetchConTimeout('https://flood-api.open-meteo.com/v1/flood?latitude=-3.46,-12.04,23.81,30.04,15.12&longitude=-62.21,-77.04,90.41,31.23,105.80&daily=river_discharge,river_discharge_mean&forecast_days=1'),
             fetchConTimeout('https://air-quality-api.open-meteo.com/v1/air-quality?latitude=-3.46,0.51,-0.78,28.61,-12.04&longitude=-62.21,25.25,113.92,77.20,-77.04&current=us_aqi,pm2_5')
         ]);
 
-        // 1. NASA EONET (Incendios, tormentas, inundaciones, volcanes)
+        // 1. NASA
         if (resNasa.status === 'fulfilled' && resNasa.value?.events) {
             resNasa.value.events.forEach(ev => {
                 const geo = ev.geometry?.[ev.geometry.length - 1];
                 if (!geo || geo.type !== 'Point') return;
-
                 const cat = ev.categories?.[0]?.id || '';
                 let ods = 'ODS 15';
                 let severidad = 'ALTO';
@@ -98,14 +96,15 @@ async function obtenerTelemetriaGlobal(forzar = false) {
             });
         }
 
-        // 2. USGS Sismología y Alertas de Tsunami
+        // 2. USGS (Sensibilidad alta: captamos sismos desde magnitud 1.0)
         if (resUsgs.status === 'fulfilled' && resUsgs.value?.features) {
-            resUsgs.value.features.slice(0, 25).forEach(sismo => {
+            resUsgs.value.features.forEach(sismo => {
                 const coords = sismo.geometry.coordinates;
                 const mag = sismo.properties.mag;
+                if (mag < 1.0) return; // Más sensible para llenar el mapa
                 const hayTsunami = sismo.properties.tsunami === 1;
                 const ods = hayTsunami ? 'ODS 14' : 'ODS 15';
-                const severidad = (mag >= 5.5 || hayTsunami) ? 'CRÍTICO' : (mag >= 4.5 ? 'ALTO' : 'MODERADO');
+                const severidad = (mag >= 5.0 || hayTsunami) ? 'CRÍTICO' : (mag >= 4.0 ? 'ALTO' : 'MODERADO');
 
                 eventos.push({
                     id: `usgs-${sismo.id}`,
@@ -122,32 +121,27 @@ async function obtenerTelemetriaGlobal(forzar = false) {
             });
         }
 
-        // 3. Hidrología Fluvial GloFAS (Caudal real de cuencas)
+        // 3. Ríos y Caudales
         if (resRios.status === 'fulfilled' && Array.isArray(resRios.value)) {
             const cuencas = [
-                { nombre: 'Cuenca Río Amazonas (Manaos)', lat: -3.46, lng: -62.21 },
-                { nombre: 'Cuenca Río Rímac / Andes (Lima)', lat: -12.04, lng: -77.04 },
-                { nombre: 'Delta Ganges-Brahmaputra', lat: 23.81, lng: 90.41 },
-                { nombre: 'Cuenca Baja Río Nilo', lat: 30.04, lng: 31.23 },
-                { nombre: 'Cuenca Río Mekong', lat: 15.12, lng: 105.80 }
+                { nombre: 'Cuenca Río Amazonas', lat: -3.46, lng: -62.21 },
+                { nombre: 'Cuenca Río Rímac', lat: -12.04, lng: -77.04 },
+                { nombre: 'Delta Ganges', lat: 23.81, lng: 90.41 },
+                { nombre: 'Río Nilo', lat: 30.04, lng: 31.23 },
+                { nombre: 'Río Mekong', lat: 15.12, lng: 105.80 }
             ];
-
             resRios.value.forEach((rio, idx) => {
                 const actual = rio.daily?.river_discharge?.[0];
                 const media = rio.daily?.river_discharge_mean?.[0];
                 if (actual == null || media == null) return;
-
                 const ratio = media > 0 ? (actual / media) : 1;
-                const severidad = ratio >= 1.8 ? 'CRÍTICO' : (ratio >= 1.25 ? 'ALTO' : 'MODERADO');
-                const c = cuencas[idx];
-
                 eventos.push({
                     id: `rio-${idx}`,
                     ods: 'ODS 6',
-                    severidad,
-                    detalle: `Caudal ${c.nombre}: ${actual.toFixed(1)} m³/s (Media histórica: ${media.toFixed(1)} m³/s)`,
-                    latitud: c.lat,
-                    longitud: c.lng,
+                    severidad: ratio >= 1.8 ? 'CRÍTICO' : (ratio >= 1.25 ? 'ALTO' : 'MODERADO'),
+                    detalle: `Caudal ${cuencas[idx].nombre}: ${actual.toFixed(1)} m³/s (Media: ${media.toFixed(1)})`,
+                    latitud: cuencas[idx].lat,
+                    longitud: cuencas[idx].lng,
                     fecha: new Date().toLocaleString(),
                     fuente: '🌊 Hidrología GloFAS',
                     urlOficial: 'https://open-meteo.com/en/docs/flood-api'
@@ -156,31 +150,25 @@ async function obtenerTelemetriaGlobal(forzar = false) {
             });
         }
 
-        // 4. Calidad del Aire CAMS (Ecosistemas y corredores críticos)
+        // 4. Calidad del Aire
         if (resAire.status === 'fulfilled' && Array.isArray(resAire.value)) {
             const zonas = [
-                { nombre: 'Reserva Amazónica Central', lat: -3.46, lng: -62.21 },
-                { nombre: 'Selva Cuenca del Congo', lat: 0.51, lng: 25.25 },
-                { nombre: 'Bosque Tropical de Borneo', lat: -0.78, lng: 113.92 },
-                { nombre: 'Corredor Urbano Nueva Delhi', lat: 28.61, lng: 77.20 },
-                { nombre: 'Costa Central Lima Metropolitana', lat: -12.04, lng: -77.04 }
+                { nombre: 'Amazonía', lat: -3.46, lng: -62.21 },
+                { nombre: 'Congo', lat: 0.51, lng: 25.25 },
+                { nombre: 'Borneo', lat: -0.78, lng: 113.92 },
+                { nombre: 'Nueva Delhi', lat: 28.61, lng: 77.20 },
+                { nombre: 'Lima', lat: -12.04, lng: -77.04 }
             ];
-
             resAire.value.forEach((aire, idx) => {
                 const aqi = aire.current?.us_aqi;
-                const pm25 = aire.current?.pm2_5;
                 if (aqi == null) return;
-
-                const severidad = aqi >= 150 ? 'CRÍTICO' : (aqi >= 80 ? 'ALTO' : 'MODERADO');
-                const z = zonas[idx];
-
                 eventos.push({
                     id: `aire-${idx}`,
                     ods: 'ODS 15',
-                    severidad,
-                    detalle: `Atmósfera ${z.nombre}: US AQI ${aqi} | PM2.5: ${pm25} µg/m³`,
-                    latitud: z.lat,
-                    longitud: z.lng,
+                    severidad: aqi >= 150 ? 'CRÍTICO' : (aqi >= 80 ? 'ALTO' : 'MODERADO'),
+                    detalle: `Atmósfera ${zonas[idx].nombre}: US AQI ${aqi} | PM2.5: ${aire.current?.pm2_5}`,
+                    latitud: zonas[idx].lat,
+                    longitud: zonas[idx].lng,
                     fecha: new Date().toLocaleString(),
                     fuente: '🌫️ Satélite CAMS',
                     urlOficial: 'https://open-meteo.com/en/docs/air-quality-api'
@@ -190,13 +178,10 @@ async function obtenerTelemetriaGlobal(forzar = false) {
         }
 
         resumenFuentes = `NASA: ${cNasa} | USGS: ${cUsgs} | RÍOS: ${cRios} | AIRE: ${cAire}`;
-        console.log(`📡 Telemetría real -> ${resumenFuentes}`);
-
         if (eventos.length > 0) {
             cacheSatelital = eventos;
             ultimaActualizacion = Date.now();
         }
-
         promesaEnCurso = null;
         return eventos;
     })();
@@ -204,33 +189,39 @@ async function obtenerTelemetriaGlobal(forzar = false) {
     return await promesaEnCurso;
 }
 
-// Endpoint HTTP directo para sincronización rápida
+// Endpoints
 app.get('/api/telemetria', async (req, res) => {
     const forzar = req.query.forzar === '1';
     const globales = await obtenerTelemetriaGlobal(forzar);
-    const locales = leerHistorial();
     res.json({
-        eventos: [...locales, ...globales],
+        eventos: [...leerHistorial(), ...globales],
         resumen: resumenFuentes
     });
 });
 
 io.on('connection', async (socket) => {
-    const locales = leerHistorial();
     const globales = await obtenerTelemetriaGlobal(false);
     socket.emit('historial_radar', {
-        eventos: [...locales, ...globales],
+        eventos: [...leerHistorial(), ...globales],
         resumen: resumenFuentes
     });
 
-    // Telemetría meteorológica y de aire en tiempo real en la ubicación GPS del usuario
+    // Login
+    socket.on('autenticar_ong', (credenciales, callback) => {
+        if (credenciales.usuario === 'admin' && credenciales.password === 'ong2026') {
+            callback({ success: true });
+        } else {
+            callback({ success: false });
+        }
+    });
+
+    // Telemetría local (Clima y Aire)
     socket.on('consultar_mi_entorno', async ({ lat, lng }) => {
         try {
             const [resClima, resAire] = await Promise.all([
                 fetchConTimeout(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,wind_speed_10m`),
                 fetchConTimeout(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lng}&current=us_aqi,pm2_5`)
             ]);
-
             socket.emit('entorno_local', {
                 temp: resClima.current?.temperature_2m ?? '--',
                 humedad: resClima.current?.relative_humidity_2m ?? '--',
@@ -238,17 +229,15 @@ io.on('connection', async (socket) => {
                 aqi: resAire.current?.us_aqi ?? '--',
                 pm25: resAire.current?.pm2_5 ?? '--'
             });
-        } catch (err) {
-            console.error('Error escaneando entorno local:', err.message);
-        }
+        } catch (err) {}
     });
 
-    // Registro de nuevos incidentes verificados por GPS en campo
+    // Reporte ONG
     socket.on('nuevo_reporte', (datos) => {
         const nuevo = {
             ...datos,
             id: `campo-${Date.now()}`,
-            fuente: '📍 Reporte GPS Verificado',
+            fuente: '📍 Reporte ONG Verificado',
             urlOficial: `https://www.google.com/maps?q=${datos.latitud},${datos.longitud}`
         };
         const historial = leerHistorial();
@@ -258,18 +247,16 @@ io.on('connection', async (socket) => {
     });
 });
 
-// Refresco satelital automático cada 3 minutos
 setInterval(async () => {
     const globales = await obtenerTelemetriaGlobal(true);
-    const locales = leerHistorial();
     io.emit('historial_radar', {
-        eventos: [...locales, ...globales],
+        eventos: [...leerHistorial(), ...globales],
         resumen: resumenFuentes
     });
 }, 180000);
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-    console.log(`BIOSPHERE operando en http://localhost:${PORT}`);
+    console.log(`BIOSPHERE operando en puerto ${PORT}`);
     obtenerTelemetriaGlobal(true);
 });

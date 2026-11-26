@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BIOSPHERE | Monitoreo Satelital y Alerta Ambiental</title>
+    <title>BIOSPHERE | Centro de Comando Ambiental</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -37,14 +37,18 @@
 
         .status-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
         .live-pill { background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: #6ee7b7; padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 800; }
-        .btn-tool { background: #1e293b; border: 1px solid #475569; color: #e2e8f0; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer; }
-        .btn-tool:hover { background: #334155; }
+        .btn-tool { background: #1e293b; border: 1px solid #475569; color: #e2e8f0; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer; transition: 0.2s; }
+        .btn-tool:hover { background: #334155; transform: translateY(-1px); }
 
         .action-bar { background: #0f172a; padding: 10px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; }
         .local-telemetry { display: flex; align-items: center; gap: 12px; font-size: 12px; background: var(--bg-panel); padding: 7px 14px; border-radius: 8px; border: 1px solid var(--border); flex-wrap: wrap; }
         .local-telemetry strong { color: #38bdf8; }
 
-        .report-form { display: flex; gap: 8px; flex: 1; max-width: 760px; flex-wrap: wrap; }
+        /* Login y Formulario */
+        .report-form { display: none; gap: 8px; flex: 1; max-width: 760px; flex-wrap: wrap; animation: fadeIn 0.3s; }
+        .report-form.active { display: flex; }
+        .locked-form { display: flex; gap: 12px; align-items: center; flex: 1; max-width: 760px; background: rgba(239, 68, 68, 0.1); padding: 8px 16px; border-radius: 8px; border: 1px dashed #ef4444; }
+        
         .report-form select, .report-form input { background: var(--bg-panel); border: 1px solid var(--border); color: white; padding: 8px 12px; border-radius: 8px; font-size: 12px; font-family: inherit; }
         .report-form input { flex: 1; min-width: 180px; }
         .btn-send { background: #ef4444; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 700; font-size: 12px; cursor: pointer; }
@@ -54,7 +58,14 @@
 
         .map-wrapper { position: relative; width: 100%; height: 46vh; min-height: 320px; }
         #mapa { width: 100%; height: 100%; border-radius: 12px; border: 1px solid var(--border); z-index: 1; background: #0b1120; }
-        .leaflet-tile-pane { filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(92%); }
+        
+        /* Efecto Radar de Mapa Oscuro */
+        .mapa-infrarrojo { filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(92%); }
+
+        /* Efecto Radar de Pulso */
+        .radar-pulse { border-radius: 50%; border: 2px solid #38bdf8; animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite; box-shadow: 0 0 15px rgba(56, 189, 248, 0.5); }
+        @keyframes ping { 75%, 100% { transform: scale(3.5); opacity: 0; } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 
         .filter-bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
         .filter-group { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
@@ -71,8 +82,8 @@
         .cards-scroll::-webkit-scrollbar { width: 5px; }
         .cards-scroll::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 10px; }
 
-        .incident-card { background: var(--bg-card); border-radius: 8px; padding: 12px; border-left: 4px solid; font-size: 12px; display: flex; flex-direction: column; gap: 7px; }
-        .incident-card:hover { background: #263244; }
+        .incident-card { background: var(--bg-card); border-radius: 8px; padding: 12px; border-left: 4px solid; font-size: 12px; display: flex; flex-direction: column; gap: 7px; transition: transform 0.2s ease; }
+        .incident-card:hover { background: #263244; transform: scale(1.01); }
         .incident-card.ods6 { border-left-color: var(--ods6); }
         .incident-card.ods14 { border-left-color: var(--ods14); }
         .incident-card.ods15 { border-left-color: var(--ods15); }
@@ -93,6 +104,16 @@
         .btn-weather { background: #0369a1; color: white; }
         .btn-share { background: #15803d; color: white; }
         .btn-link { background: #1e293b; border: 1px solid #475569; color: #93c5fd; }
+
+        /* Modal Login Estilos */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+        .modal-overlay.active { display: flex; }
+        .modal-content { background: var(--bg-panel); padding: 24px; border-radius: 12px; border: 1px solid var(--border); width: 300px; text-align: center; }
+        .modal-content h3 { margin-top: 0; color: #f9fafb; }
+        .modal-content input { width: 100%; padding: 10px; margin: 8px 0; background: var(--bg-base); border: 1px solid var(--border); color: white; border-radius: 6px; font-family: inherit; }
+        .modal-content button.btn-login { width: 100%; padding: 10px; background: #2563eb; color: white; border: none; border-radius: 6px; font-weight: bold; margin-top: 10px; cursor: pointer; }
+        .modal-content button.btn-login:hover { background: #1d4ed8; }
+        .modal-content button.btn-cancel { width: 100%; padding: 10px; background: transparent; color: #9ca3af; border: 1px solid #374151; border-radius: 6px; margin-top: 8px; cursor: pointer; }
 
         @media (max-width: 960px) {
             .triage-grid { grid-template-columns: 1fr; }
@@ -124,7 +145,15 @@
 
         <div class="status-actions">
             <div class="live-pill" id="sensor-status">🛰️ CONECTANDO SATÉLITES...</div>
-            <button class="btn-tool" onclick="sincronizarTodo()">🔄 Actualizar</button>
+            
+            <!-- Buscador para Vuelo Táctico -->
+            <div style="display: flex; gap: 5px; align-items: center;">
+                <input type="text" id="buscador-ciudad" placeholder="Vuelo táctico (ej. Tokio)..." 
+                       style="background: #1e293b; border: 1px solid #475569; color: white; padding: 6px 10px; border-radius: 6px; font-size: 11px; width: 160px;">
+                <button class="btn-tool" onclick="volarACiudad()" style="background: #2563eb; border-color: #3b82f6;">🚀 Volar</button>
+            </div>
+
+            <button class="btn-tool" onclick="sincronizarTodo()">🔄 Actualizar Radar</button>
             <button class="btn-tool" onclick="exportarCSV()">📥 Exportar CSV</button>
             <button class="btn-tool" onclick="exportarGeoJSON()">🌍 GeoJSON</button>
         </div>
@@ -135,7 +164,12 @@
             <span>📡 Escaneando estación GPS local...</span>
         </div>
 
-        <form class="report-form" onsubmit="enviarReporteCampo(event)">
+        <div class="locked-form" id="locked-state">
+            <span style="font-size: 12px; font-weight: bold; color: #fca5a5;">🔒 Modo Observador. Para emitir alertas al mapa se requiere verificación.</span>
+            <button class="btn-tool" style="background: #ef4444; color: white; font-size: 12px; padding: 8px 14px;" onclick="abrirLogin()">🔑 Acceso ONG</button>
+        </div>
+
+        <form class="report-form" id="active-form" onsubmit="enviarReporteCampo(event)">
             <select id="rep-ods" required>
                 <option value="ODS 6">💧 ODS 6 (Agua/Inundación)</option>
                 <option value="ODS 14">🌊 ODS 14 (Océano/Costas)</option>
@@ -146,8 +180,8 @@
                 <option value="ALTO">⚠️ Severidad: Alta</option>
                 <option value="MODERADO">ℹ️ Severidad: Moderada</option>
             </select>
-            <input type="text" id="rep-desc" placeholder="Reportar incidente real observado en tu ubicación..." required />
-            <button type="submit" class="btn-send">📍 Registrar con GPS</button>
+            <input type="text" id="rep-desc" placeholder="Describa el desastre detectado en sus coordenadas GPS..." required />
+            <button type="submit" class="btn-send">📍 Registrar Alerta Global</button>
         </form>
     </div>
 
@@ -163,7 +197,7 @@
                 <button class="filter-btn" onclick="aplicarFiltro('CRÍTICO', this)">🚨 Solo Críticos</button>
                 <button class="filter-btn" onclick="aplicarFiltro('NASA', this)">🛰️ NASA EONET</button>
                 <button class="filter-btn" onclick="aplicarFiltro('USGS', this)">🌋 Sismos USGS</button>
-                <button class="filter-btn" onclick="aplicarFiltro('CAMPO', this)">📍 Reportes GPS</button>
+                <button class="filter-btn" onclick="aplicarFiltro('CAMPO', this)">📍 Reportes ONG</button>
                 <select id="radio-radar" class="radar-select" onchange="actualizarRadioRadar()">
                     <option value="300">Radio: 300 km</option>
                     <option value="800" selected>Radio: 800 km</option>
@@ -200,6 +234,18 @@
         </div>
     </div>
 
+    <!-- Modal Login -->
+    <div class="modal-overlay" id="login-modal">
+        <div class="modal-content">
+            <h3>🔒 Acceso Operativo</h3>
+            <p style="font-size:12px; color:#9ca3af; margin-bottom:15px;">Identificación requerida para emitir alertas. <br>(Prueba con: admin / ong2026)</p>
+            <input type="text" id="l-user" placeholder="Usuario">
+            <input type="password" id="l-pwd" placeholder="Contraseña">
+            <button class="btn-login" onclick="intentarLogin()">Verificar Identidad</button>
+            <button class="btn-cancel" onclick="cerrarLogin()">Cancelar</button>
+        </div>
+    </div>
+
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
@@ -210,10 +256,28 @@
         });
         map.fitBounds([[-55, -165], [72, 165]]);
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap | Datos reales: NASA EONET, USGS, Open-Meteo',
-            maxZoom: 18
-        }).addTo(map);
+        // CONFIGURACIÓN DE CÁMARAS MULTIESPECTRALES
+        const mapaOscuro = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            className: 'mapa-infrarrojo',
+            attribution: '© OpenStreetMap'
+        });
+
+        const sateliteReal = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: '© Esri — Imágenes satelitales'
+        });
+
+        const topografico = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenTopoMap'
+        });
+
+        mapaOscuro.addTo(map);
+
+        const capasBase = {
+            "🖥️ Radar Infrarrojo": mapaOscuro,
+            "🌍 Satélite Real": sateliteReal,
+            "⛰️ Relieve Topográfico": topografico
+        };
+        L.control.layers(capasBase).addTo(map);
 
         setTimeout(() => map.invalidateSize(), 200);
 
@@ -224,6 +288,7 @@
         let miUbicacion = null;
         let radioKm = 800;
         let circuloRadar = null;
+        let gpsMarker = null;
 
         function actualizarRadioRadar() {
             radioKm = Number(document.getElementById('radio-radar').value);
@@ -241,7 +306,6 @@
             renderizarTodo();
         }
 
-        // Leyenda visual en la esquina inferior izquierda del mapa
         const leyenda = L.control({ position: 'bottomleft' });
         leyenda.onAdd = () => {
             const div = L.DomUtil.create('div');
@@ -252,7 +316,7 @@
                 <span style="color:#0ea5e9;">●</span> ODS 6 &nbsp;
                 <span style="color:#3b82f6;">●</span> ODS 14 &nbsp;
                 <span style="color:#10b981;">●</span> ODS 15 &nbsp;
-                <span style="color:#38bdf8;">◉</span> Tu Radar
+                <span style="color:#38bdf8;">◉</span> Radar
             `;
             return div;
         };
@@ -275,139 +339,16 @@
             const aire = arr.filter(e => e.id.startsWith('aire-')).length;
             const campo = arr.filter(e => e.id.startsWith('campo-')).length;
             document.getElementById('sensor-status').textContent =
-                `🛰️ NASA: ${nasa} | USGS: ${usgs} | RÍOS: ${rios} | AIRE: ${aire} | GPS: ${campo}`;
-        }
-
-        async function escanearEntornoDirecto(lat, lng) {
-            try {
-                const [resClima, resAire] = await Promise.all([
-                    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,wind_speed_10m`).then(r => r.json()),
-                    fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lng}&current=us_aqi,pm2_5`).then(r => r.json())
-                ]);
-                document.getElementById('telemetria-local').innerHTML = `
-                    <span>📍 <strong>Tu Estación Local:</strong></span>
-                    <span>🌡️ ${resClima.current?.temperature_2m ?? '--'}°C</span>
-                    <span>💧 ${resClima.current?.relative_humidity_2m ?? '--'}%</span>
-                    <span>💨 ${resClima.current?.wind_speed_10m ?? '--'} km/h</span>
-                    <span>🌫️ AQI: <strong>${resAire.current?.us_aqi ?? '--'}</strong> (PM2.5: ${resAire.current?.pm2_5 ?? '--'} µg/m³)</span>
-                `;
-            } catch (e) {}
-        }
-
-        async function cargarSensoresDirectos() {
-            const [usgs, nasa, rios, aire] = await Promise.allSettled([
-                fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson').then(r => r.json()),
-                fetch('https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=30').then(r => r.json()),
-                fetch('https://flood-api.open-meteo.com/v1/flood?latitude=-3.46,-12.04,23.81,30.04,15.12&longitude=-62.21,-77.04,90.41,31.23,105.80&daily=river_discharge,river_discharge_mean&forecast_days=1').then(r => r.json()),
-                fetch('https://air-quality-api.open-meteo.com/v1/air-quality?latitude=-3.46,0.51,-0.78,28.61,-12.04&longitude=-62.21,25.25,113.92,77.20,-77.04&current=us_aqi,pm2_5').then(r => r.json())
-            ]);
-
-            const nuevos = [];
-
-            if (usgs.status === 'fulfilled' && usgs.value?.features) {
-                usgs.value.features.slice(0, 25).forEach(s => {
-                    const mag = s.properties.mag;
-                    const ts = s.properties.tsunami === 1;
-                    nuevos.push({
-                        id: `usgs-${s.id}`,
-                        ods: ts ? 'ODS 14' : 'ODS 15',
-                        severidad: (mag >= 5.5 || ts) ? 'CRÍTICO' : (mag >= 4.5 ? 'ALTO' : 'MODERADO'),
-                        detalle: `${ts ? '🌊 ALERTA TSUNAMI + ' : ''}Sismo M${mag.toFixed(1)} - ${s.properties.place}`,
-                        latitud: s.geometry.coordinates[1],
-                        longitud: s.geometry.coordinates[0],
-                        fecha: new Date(s.properties.time).toLocaleString(),
-                        fuente: '🌋 USGS Sismología',
-                        urlOficial: s.properties.url || 'https://earthquake.usgs.gov/'
-                    });
-                });
-            }
-
-            if (nasa.status === 'fulfilled' && nasa.value?.events) {
-                nasa.value.events.forEach(ev => {
-                    const geo = ev.geometry?.[ev.geometry.length - 1];
-                    if (!geo || geo.type !== 'Point') return;
-                    const cat = ev.categories?.[0]?.id || '';
-                    let ods = 'ODS 15';
-                    if (cat === 'floods' || cat === 'drought') ods = 'ODS 6';
-                    if (cat === 'severeStorms' || cat === 'seaLakeIce') ods = 'ODS 14';
-                    nuevos.push({
-                        id: `nasa-${ev.id}`,
-                        ods,
-                        severidad: (cat === 'severeStorms' || cat === 'volcanoes') ? 'CRÍTICO' : 'ALTO',
-                        detalle: ev.title,
-                        latitud: geo.coordinates[1],
-                        longitud: geo.coordinates[0],
-                        fecha: new Date(geo.date).toLocaleString(),
-                        fuente: '🛰️ NASA EONET',
-                        urlOficial: ev.sources?.[0]?.url || ev.link || 'https://eonet.gsfc.nasa.gov/'
-                    });
-                });
-            }
-
-            if (rios.status === 'fulfilled' && Array.isArray(rios.value)) {
-                const cuencas = [
-                    { nombre: 'Cuenca Río Amazonas (Manaos)', lat: -3.46, lng: -62.21 },
-                    { nombre: 'Cuenca Río Rímac / Andes (Lima)', lat: -12.04, lng: -77.04 },
-                    { nombre: 'Delta Ganges-Brahmaputra', lat: 23.81, lng: 90.41 },
-                    { nombre: 'Cuenca Baja Río Nilo', lat: 30.04, lng: 31.23 },
-                    { nombre: 'Cuenca Río Mekong', lat: 15.12, lng: 105.80 }
-                ];
-                rios.value.forEach((r, idx) => {
-                    const act = r.daily?.river_discharge?.[0];
-                    const med = r.daily?.river_discharge_mean?.[0];
-                    if (act == null || med == null) return;
-                    const ratio = med > 0 ? act / med : 1;
-                    nuevos.push({
-                        id: `rio-${idx}`,
-                        ods: 'ODS 6',
-                        severidad: ratio >= 1.8 ? 'CRÍTICO' : (ratio >= 1.25 ? 'ALTO' : 'MODERADO'),
-                        detalle: `Caudal ${cuencas[idx].nombre}: ${act.toFixed(1)} m³/s (Media: ${med.toFixed(1)} m³/s)`,
-                        latitud: cuencas[idx].lat,
-                        longitud: cuencas[idx].lng,
-                        fecha: new Date().toLocaleString(),
-                        fuente: '🌊 Hidrología GloFAS',
-                        urlOficial: 'https://open-meteo.com/en/docs/flood-api'
-                    });
-                });
-            }
-
-            if (aire.status === 'fulfilled' && Array.isArray(aire.value)) {
-                const zonas = [
-                    { nombre: 'Reserva Amazónica Central', lat: -3.46, lng: -62.21 },
-                    { nombre: 'Selva Cuenca del Congo', lat: 0.51, lng: 25.25 },
-                    { nombre: 'Bosque Tropical de Borneo', lat: -0.78, lng: 113.92 },
-                    { nombre: 'Corredor Urbano Nueva Delhi', lat: 28.61, lng: 77.20 },
-                    { nombre: 'Costa Central Lima Metropolitana', lat: -12.04, lng: -77.04 }
-                ];
-                aire.value.forEach((a, idx) => {
-                    const aqi = a.current?.us_aqi;
-                    const pm25 = a.current?.pm2_5;
-                    if (aqi == null) return;
-                    nuevos.push({
-                        id: `aire-${idx}`,
-                        ods: 'ODS 15',
-                        severidad: aqi >= 150 ? 'CRÍTICO' : (aqi >= 80 ? 'ALTO' : 'MODERADO'),
-                        detalle: `Atmósfera ${zonas[idx].nombre}: US AQI ${aqi} | PM2.5: ${pm25} µg/m³`,
-                        latitud: zonas[idx].lat,
-                        longitud: zonas[idx].lng,
-                        fecha: new Date().toLocaleString(),
-                        fuente: '🌫️ Satélite CAMS',
-                        urlOficial: 'https://open-meteo.com/en/docs/air-quality-api'
-                    });
-                });
-            }
-
-            fusionarEventos(nuevos);
+                `🛰️ NASA: ${nasa} | USGS: ${usgs} | RÍOS: ${rios} | AIRE: ${aire} | ONG: ${campo}`;
         }
 
         async function sincronizarTodo() {
-            document.getElementById('sensor-status').textContent = '🛰️ SINCRONIZANDO...';
+            document.getElementById('sensor-status').textContent = '🛰️ SINCRONIZANDO CON SATÉLITES...';
             try {
                 const res = await fetch('/api/telemetria?forzar=1');
                 const data = await res.json();
                 if (data?.eventos) fusionarEventos(data.eventos);
             } catch (e) {}
-            await cargarSensoresDirectos();
         }
 
         async function analizarClimaEnZona(id) {
@@ -417,7 +358,7 @@
             const box = document.getElementById(`clima-${id}`);
             if (box) {
                 box.style.display = 'block';
-                box.innerHTML = '⏳ Consultando estación meteorológica satelital en esas coordenadas...';
+                box.innerHTML = '⏳ Consultando estación meteorológica...';
             }
 
             try {
@@ -429,15 +370,14 @@
                 const temp = clima.current?.temperature_2m ?? '--';
                 const lluvia = clima.current?.precipitation ?? 0;
                 const viento = clima.current?.wind_speed_10m ?? '--';
-                const dir = clima.current?.wind_direction_10m ?? '--';
                 const aqi = aire.current?.us_aqi ?? '--';
                 const pm25 = aire.current?.pm2_5 ?? '--';
 
                 if (box) {
-                    box.innerHTML = `📡 <strong>Condiciones en zona ahora:</strong> 🌡️ ${temp}°C | 🌧️ Lluvia: ${lluvia} mm | 💨 Viento: ${viento} km/h (${dir}°) | 🌫️ AQI: ${aqi} (PM2.5: ${pm25})`;
+                    box.innerHTML = `📡 <strong>Condiciones en zona:</strong> 🌡️ ${temp}°C | 🌧️ Lluvia: ${lluvia} mm | 💨 Viento: ${viento} km/h | 🌫️ AQI: ${aqi} (PM2.5: ${pm25})`;
                 }
             } catch {
-                if (box) box.innerHTML = '⚠️ No se pudo obtener telemetría local en este momento.';
+                if (box) box.innerHTML = '⚠️ No se pudo obtener telemetría local.';
             }
         }
 
@@ -446,16 +386,12 @@
             if (!ev) return;
 
             const mapsLink = `https://www.google.com/maps?q=${ev.latitud},${ev.longitud}`;
-            const texto = `🚨 ALERTA AMBIENTAL BIOSPHERE (${ev.ods} - ${ev.severidad})\n` +
+            const texto = `🚨 ALERTA BIOSPHERE (${ev.ods} - ${ev.severidad})\n` +
                           `• Evento: ${ev.detalle}\n` +
                           `• Fuente: ${ev.fuente}\n` +
-                          `• Coordenadas: ${ev.latitud.toFixed(4)}, ${ev.longitud.toFixed(4)}\n` +
                           `• Ubicación exacta: ${mapsLink}\n` +
                           `• Fecha/Hora: ${ev.fecha}`;
 
-            if (navigator.clipboard) {
-                navigator.clipboard.writeText(texto).catch(() => {});
-            }
             window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank');
         }
 
@@ -500,33 +436,6 @@
             a.download = `biosphere_eventos_${new Date().toISOString().slice(0, 10)}.geojson`;
             a.click();
         }
-
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition((pos) => {
-                miUbicacion = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                document.getElementById('gps-status').textContent = `GPS activo: ${miUbicacion.lat.toFixed(4)}, ${miUbicacion.lng.toFixed(4)}`;
-                socket.emit('consultar_mi_entorno', miUbicacion);
-                escanearEntornoDirecto(miUbicacion.lat, miUbicacion.lng);
-
-                L.circleMarker([miUbicacion.lat, miUbicacion.lng], {
-                    color: '#ffffff', fillColor: '#38bdf8', fillOpacity: 1, radius: 7, weight: 3
-                }).addTo(map).bindPopup('<b>📍 Tu Ubicación GPS Actual</b>');
-
-                actualizarRadioRadar();
-            }, () => {
-                document.getElementById('telemetria-local').innerHTML = '<span>⚠️ Activa el GPS para telemetría local y cálculo de distancias</span>';
-            });
-        }
-
-        socket.on('entorno_local', (env) => {
-            document.getElementById('telemetria-local').innerHTML = `
-                <span>📍 <strong>Tu Estación Local:</strong></span>
-                <span>🌡️ ${env.temp}°C</span>
-                <span>💧 ${env.humedad}%</span>
-                <span>💨 ${env.viento} km/h</span>
-                <span>🌫️ AQI: <strong>${env.aqi}</strong> (PM2.5: ${env.pm25} µg/m³)</span>
-            `;
-        });
 
         function calcularDistanciaKm(lat1, lon1, lat2, lon2) {
             const R = 6371;
@@ -586,19 +495,15 @@
                     : `📍 ${ev.latitud.toFixed(2)}, ${ev.longitud.toFixed(2)}`;
 
                 const marker = L.circleMarker([ev.latitud, ev.longitud], {
-                    color,
-                    fillColor: color,
-                    fillOpacity: 0.78,
-                    radius: ev.severidad === 'CRÍTICO' ? 9 : 6,
-                    weight: 2
+                    color, fillColor: color, fillOpacity: 0.78,
+                    radius: ev.severidad === 'CRÍTICO' ? 9 : 6, weight: 2
                 }).addTo(capaMarcadores);
 
                 marker.bindPopup(`
                     <div style="color:#090d16; font-family:Inter,sans-serif; max-width:240px;">
                         <strong style="font-size:12px;">${ev.detalle}</strong><br>
                         <small>${ev.fuente} | <b>${ev.severidad}</b></small><br>
-                        <small>📍 ${ev.latitud.toFixed(4)}, ${ev.longitud.toFixed(4)}</small><br>
-                        <small>🕒 ${ev.fecha}</small>
+                        <small>📍 ${ev.latitud.toFixed(4)}, ${ev.longitud.toFixed(4)}</small>
                     </div>
                 `);
                 marcadoresPorId[ev.id] = marker;
@@ -614,13 +519,13 @@
                     <div class="weather-strip" id="clima-${ev.id}"></div>
                     <div class="meta-row">
                         <span>${distTexto}</span>
-                        <span>🕒 ${ev.fecha}</span>
+                        <span>🕒 ${ev.fecha.split(',')[1] || ev.fecha}</span>
                     </div>
                     <div class="card-actions">
                         <button class="btn-op btn-focus" onclick="enfocarEvento('${ev.id}', ${ev.latitud}, ${ev.longitud})">🎯 Mapa</button>
-                        <button class="btn-op btn-weather" onclick="analizarClimaEnZona('${ev.id}')">🌦️ Clima en Zona</button>
+                        <button class="btn-op btn-weather" onclick="analizarClimaEnZona('${ev.id}')">🌦️ Clima</button>
                         <button class="btn-op btn-share" onclick="compartirAlertaReal('${ev.id}')">📲 Alertar</button>
-                        <a class="btn-op btn-link" href="${ev.urlOficial}" target="_blank" rel="noopener">🔗 Fuente</a>
+                        <a class="btn-op btn-link" href="${ev.urlOficial}" target="_blank" rel="noopener">🔗 Info</a>
                     </div>
                 `;
                 document.getElementById(listaId).appendChild(card);
@@ -634,28 +539,63 @@
             document.getElementById('kpi-campo').textContent = campo;
         }
 
-        function enviarReporteCampo(e) {
-            e.preventDefault();
-            const ods = document.getElementById('rep-ods').value;
-            const severidad = document.getElementById('rep-sev').value;
-            const detalle = document.getElementById('rep-desc').value.trim();
-
-            if (!detalle) return;
-            if (!navigator.geolocation) return alert('Tu navegador no soporta GPS.');
-
+        if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition((pos) => {
-                socket.emit('nuevo_reporte', {
-                    ods,
-                    severidad,
-                    detalle,
-                    latitud: pos.coords.latitude,
-                    longitud: pos.coords.longitude,
-                    fecha: new Date().toLocaleString()
-                });
-                document.getElementById('rep-desc').value = '';
-            }, () => alert('Activa el permiso GPS para registrar un incidente real.'));
+                miUbicacion = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                document.getElementById('gps-status').textContent = `📍 Satélite GPS Localizado (${miUbicacion.lat.toFixed(2)}, ${miUbicacion.lng.toFixed(2)})`;
+                
+                socket.emit('consultar_mi_entorno', miUbicacion);
+
+                const iconRadar = L.divIcon({ className: 'radar-pulse', iconSize: [30, 30] });
+                if(gpsMarker) map.removeLayer(gpsMarker);
+                gpsMarker = L.layerGroup([
+                    L.marker([miUbicacion.lat, miUbicacion.lng], { icon: iconRadar }),
+                    L.circleMarker([miUbicacion.lat, miUbicacion.lng], { color: '#ffffff', fillColor: '#38bdf8', fillOpacity: 1, radius: 6, weight: 2 })
+                ]).addTo(map);
+
+                actualizarRadioRadar();
+            }, () => {
+                document.getElementById('telemetria-local').innerHTML = '<span>⚠️ Activa el GPS para telemetría local y cálculo de distancias</span>';
+            });
         }
 
+        // FUNCIONES DE LOGIN Y REPORTES
+        function abrirLogin() { document.getElementById('login-modal').classList.add('active'); }
+        function cerrarLogin() { document.getElementById('login-modal').classList.remove('active'); }
+        
+        function intentarLogin() {
+            const u = document.getElementById('l-user').value;
+            const p = document.getElementById('l-pwd').value;
+            socket.emit('autenticar_ong', { usuario: u, password: p }, (res) => {
+                if (res.success) {
+                    cerrarLogin();
+                    document.getElementById('locked-state').style.display = 'none';
+                    document.getElementById('active-form').classList.add('active');
+                    alert('🔑 Autenticación exitosa. Panel de reportes habilitado.');
+                } else {
+                    alert('❌ Credenciales incorrectas. Acceso denegado.');
+                }
+            });
+        }
+
+        function enviarReporteCampo(e) {
+            e.preventDefault();
+            if (!miUbicacion) return alert('Debes tener el GPS activado para reportar un evento.');
+            
+            socket.emit('nuevo_reporte', {
+                ods: document.getElementById('rep-ods').value,
+                severidad: document.getElementById('rep-sev').value,
+                detalle: document.getElementById('rep-desc').value.trim(),
+                latitud: miUbicacion.lat,
+                longitud: miUbicacion.lng,
+                fecha: new Date().toLocaleString()
+            });
+            
+            document.getElementById('rep-desc').value = '';
+            alert('📡 Alerta enviada y sincronizada en tiempo real con la red global.');
+        }
+
+        // WEBSOCKETS
         socket.on('historial_radar', (payload) => {
             const lista = Array.isArray(payload) ? payload : payload?.eventos;
             if (lista) fusionarEventos(lista);
@@ -666,6 +606,102 @@
                 fusionarEventos([nuevo]);
                 enfocarEvento(nuevo.id, nuevo.latitud, nuevo.longitud);
             }
+        });
+
+        socket.on('entorno_local', (env) => {
+            document.getElementById('telemetria-local').innerHTML = `
+                <span>📍 <strong>Tu Estación:</strong></span>
+                <span>🌡️ ${env.temp}°C</span>
+                <span>💧 ${env.humedad}%</span>
+                <span>💨 ${env.viento} km/h</span>
+                <span>🌫️ AQI: <strong>${env.aqi}</strong> (PM2.5: ${env.pm25} µg/m³)</span>
+            `;
+        });
+
+        // NUEVO: ESCÁNER TÁCTICO POR CLIC EN EL MAPA
+        let pinPersonalizado = null;
+
+        map.on('click', async function(e) {
+            const lat = e.latlng.lat;
+            const lng = e.latlng.lng;
+
+            if (pinPersonalizado) map.removeLayer(pinPersonalizado);
+            pinPersonalizado = L.marker([lat, lng]).addTo(map)
+                .bindPopup('⏳ Escaneando atmósfera y clima...')
+                .openPopup();
+
+            try {
+                const [resClima, resAire] = await Promise.all([
+                    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,wind_speed_10m,precipitation`).then(r => r.json()),
+                    fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lng}&current=us_aqi,pm2_5`).then(r => r.json())
+                ]);
+
+                const temp = resClima.current?.temperature_2m ?? '--';
+                const viento = resClima.current?.wind_speed_10m ?? '--';
+                const lluvia = resClima.current?.precipitation ?? '--';
+                const aqi = resAire.current?.us_aqi ?? '--';
+                
+                let riesgo = "✅ Zona Estable";
+                let color = "#10b981";
+                if (aqi > 100 || viento > 40) { riesgo = "⚠️ Riesgo Moderado"; color = "#f59e0b"; }
+                if (aqi > 150 || viento > 70) { riesgo = "🚨 Riesgo Crítico"; color = "#ef4444"; }
+
+                pinPersonalizado.setPopupContent(`
+                    <div style="font-family:Inter,sans-serif; text-align:center;">
+                        <strong style="color:${color};">${riesgo}</strong><br>
+                        <small>📍 ${lat.toFixed(2)}, ${lng.toFixed(2)}</small>
+                        <hr style="margin:5px 0; border:0; border-top:1px solid #ddd;">
+                        🌡️ Temp: ${temp}°C | 💨 Viento: ${viento}km/h<br>
+                        🌧️ Lluvia: ${lluvia}mm | 🌫️ AQI: ${aqi}
+                        <br>
+                        <button onclick="copiarCoordenadas(${lat}, ${lng})" style="margin-top:8px; background:#1e293b; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:10px;">📋 Copiar Coordenadas</button>
+                    </div>
+                `);
+            } catch (error) {
+                pinPersonalizado.setPopupContent('⚠️ Satélites fuera de alcance en esta zona.');
+            }
+        });
+
+        window.copiarCoordenadas = function(lat, lng) {
+            navigator.clipboard.writeText(`${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+            alert("Coordenadas copiadas.");
+        };
+
+        // NUEVO: VUELO TÁCTICO
+        async function volarACiudad() {
+            const ciudad = document.getElementById('buscador-ciudad').value.trim();
+            if (!ciudad) return;
+
+            const btn = document.querySelector('button[onclick="volarACiudad()"]');
+            btn.textContent = "⏳...";
+
+            try {
+                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(ciudad)}`);
+                const datos = await res.json();
+
+                if (datos.length > 0) {
+                    const lat = parseFloat(datos[0].lat);
+                    const lng = parseFloat(datos[0].lon);
+
+                    map.flyTo([lat, lng], 10, { animate: true, duration: 2 });
+
+                    setTimeout(() => {
+                        map.fire('click', { latlng: L.latLng(lat, lng) });
+                    }, 2500);
+
+                    document.getElementById('buscador-ciudad').value = '';
+                } else {
+                    alert('❌ Satélites no encontraron esa ubicación.');
+                }
+            } catch (e) {
+                alert('⚠️ Error de conexión.');
+            } finally {
+                btn.textContent = "🚀 Volar";
+            }
+        }
+
+        document.getElementById('buscador-ciudad').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') volarACiudad();
         });
 
         sincronizarTodo();
