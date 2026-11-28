@@ -198,7 +198,10 @@ app.get('/api/telemetria', async (req, res) => {
         resumen: resumenFuentes
     });
 });
-
+const crypto = require('crypto');
+const HASH_PIN_EXPOSITOR = process.env.ADMIN_PIN_HASH || '9fc4c0b3f594f32b4db161efb310c3eae28723b7834454d99bd39c09f202b243';
+const intentosFallidos = new Map();
+const usuariosActivos = new Map();
 io.on('connection', async (socket) => {
     const globales = await obtenerTelemetriaGlobal(false);
     socket.emit('historial_radar', {
@@ -214,7 +217,53 @@ io.on('connection', async (socket) => {
             callback({ success: false });
         }
     });
+const idCorto = socket.id.slice(0, 5).toUpperCase();
+usuariosActivos.set(socket.id, {
+    id: idCorto,
+    accion: 'En portada',
+    hora: new Date().toLocaleTimeString()
+});
 
+const emitirActividadAdmin = () => {
+    io.to('sala_expositores_vip').emit('panel_actividad_admin', Array.from(usuariosActivos.values()));
+};
+emitirActividadAdmin();
+
+socket.on('registrar_actividad', (accion) => {
+    if (usuariosActivos.has(socket.id)) {
+        usuariosActivos.set(socket.id, {
+            id: idCorto,
+            accion: String(accion).slice(0, 70),
+            hora: new Date().toLocaleTimeString()
+        });
+        emitirActividadAdmin();
+    }
+});
+
+socket.on('desbloquear_expositor', (pinIngresado, callback) => {
+    const ip = socket.handshake.address;
+    const fallos = intentosFallidos.get(ip) || 0;
+    if (fallos >= 3) return callback({ ok: false });
+
+    const hashIngresado = crypto.createHash('sha256').update(String(pinIngresado || '')).digest('hex');
+    const bufA = Buffer.from(hashIngresado, 'hex');
+    const bufB = Buffer.from(HASH_PIN_EXPOSITOR, 'hex');
+
+    if (bufA.length === bufB.length && crypto.timingSafeEqual(bufA, bufB)) {
+        intentosFallidos.delete(ip);
+        socket.join('sala_expositores_vip');
+        emitirActividadAdmin();
+        return callback({ ok: true });
+    } else {
+        intentosFallidos.set(ip, fallos + 1);
+        return callback({ ok: false });
+    }
+});
+
+socket.on('disconnect', () => {
+    usuariosActivos.delete(socket.id);
+    emitirActividadAdmin();
+});
     // Telemetría local (Clima y Aire)
     socket.on('consultar_mi_entorno', async ({ lat, lng }) => {
         try {

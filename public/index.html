@@ -13,26 +13,58 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
         :root {
-            /* MODO CLARO / LIGHT THEME */
-            --bg-base: #f1f5f9;       /* Gris muy suave para el fondo global */
-            --bg-panel: #ffffff;      /* Blanco puro para cabeceras y paneles */
-            --bg-card: #f8fafc;       /* Blanco apagado para tarjetas */
-            --border: #e2e8f0;        /* Bordes sutiles */
-            --text-main: #0f172a;     /* Texto principal oscuro */
-            --text-muted: #64748b;    /* Texto secundario */
-            
-            /* Colores de indicadores */
-            --ods6: #0284c7;          /* Azul agua */
-            --ods14: #2563eb;         /* Azul océano */
-            --ods15: #16a34a;         /* Verde bosque */
-            --critico: #dc2626;       /* Rojo alerta */
-            --alto: #d97706;          /* Naranja alerta */
-            --moderado: #059669;      /* Verde calma */
-        }
+        /* PALETA OFICIAL: Blanco, Gris Claro, Celeste, Amarillo, Coral */
+        --bg-base: #f1f5f9;       /* Gris claro */
+        --bg-panel: #ffffff;      /* Blanco */
+        --bg-card: #f8fafc;       /* Gris muy claro */
+        --border: #e2e8f0;        /* Borde gris claro */
+        --text-main: #0f172a;
+        --text-muted: #475569;
+        
+        /* Colores institucionales */
+        --celeste: #0284c7;
+        --celeste-claro: #e0f2fe;
+        --amarillo: #eab308;
+        --coral: #ff6b6b;
+        --verde: #16a34a;
+        --naranja: #f97316;
+
+        /* Indicadores */
+        --ods6: #0284c7;
+        --ods14: #38bdf8;
+        --ods15: #16a34a;
+        --critico: #ff6b6b;       /* Coral */
+        --alto: #f97316;          /* Naranja */
+        --moderado: #eab308;      /* Amarillo */
+    }
+
+    /* MODO OSCURO (Va afuera, DESPUÉS de la llave de cierre de :root) */
+    [data-theme="dark"] {
+        --bg-base: #0f172a;
+        --bg-panel: #1e293b;
+        --bg-card: #334155;
+        --border: #334155;
+        --text-main: #f8fafc;
+        --text-muted: #94a3b8;
+    }
+    [data-theme="dark"] #panel-ciudad-info ul,
+    [data-theme="dark"] #panel-ciudad-info li { color: #cbd5e1; }
+    [data-theme="dark"] .kpi-box { background: #1e293b; border-color: #475569; }
+    [data-theme="dark"] .kpi-label { color: #94a3b8; }
+    
+    [data-theme="dark"] .leyenda-mapa { background: rgba(30, 41, 59, 0.9) !important; color: #f8fafc !important; }
+[data-theme="dark"] .incident-card:hover { background: #475569; }
+/* A partir de aquí sigue el resto de tu CSS... */
+* { box-sizing: border-box; }
+    /* A partir de aquí sigue el resto de tu CSS... */
+    * { box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif;  }
 
         * { box-sizing: border-box; }
         body { font-family: 'Inter', sans-serif; background: var(--bg-base); color: var(--text-main); margin: 0; display: flex; flex-direction: column; min-height: 100vh; }
@@ -41,10 +73,10 @@
         .brand h1 { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: 0.5px; color: #0f172a; }
         .brand span { font-size: 12px; color: var(--text-muted); }
 
-        .kpi-strip { display: flex; gap: 10px; flex-wrap: wrap; }
-        .kpi-box { background: var(--bg-base); border: 1px solid var(--border); padding: 6px 14px; border-radius: 8px; display: flex; flex-direction: column; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02); }
-        .kpi-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; }
-        .kpi-val { font-size: 15px; font-weight: 800; color: #0f172a; }
+        .kpi-strip { display: flex; gap: 12px; flex-wrap: wrap; }
+        .kpi-box { background: var(--bg-base); border: 1px solid #cbd5e1; padding: 8px 16px; border-radius: 10px; display: flex; flex-direction: column; min-width: 115px; }
+        .kpi-label { font-size: 10px; color: #475569; text-transform: uppercase; font-weight: 700; letter-spacing: 0.4px; }
+        .kpi-val { font-size: 22px; font-weight: 800; color: #0f172a; line-height: 1.15; margin-top: 2px; }
 
         .status-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
         .live-pill { background: #dcfce7; border: 1px solid #22c55e; color: #166534; padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 800; }
@@ -55,27 +87,27 @@
         .local-telemetry { display: flex; align-items: center; gap: 12px; font-size: 12px; background: var(--bg-base); padding: 7px 14px; border-radius: 8px; border: 1px solid var(--border); flex-wrap: wrap; }
         .local-telemetry strong { color: #0284c7; }
 
-        /* Login y Formulario en Modo Claro */
+        /* Login y Formulario */
         .report-form { display: none; gap: 8px; flex: 1; max-width: 760px; flex-wrap: wrap; animation: fadeIn 0.3s; }
         .report-form.active { display: flex; }
-        .locked-form { display: flex; gap: 12px; align-items: center; flex: 1; max-width: 760px; background: #fef2f2; padding: 8px 16px; border-radius: 8px; border: 1px dashed #ef4444; }
+        .locked-form { display: flex; gap: 14px; align-items: center; justify-content: space-between; flex: 1; max-width: 760px; background: #fffbeb; padding: 10px 16px; border-radius: 10px; border: 1px solid #fcd34d; }
+        .locked-form span { color: #78350f !important; font-size: 12.5px !important; font-weight: 600 !important; }
         
         .report-form select, .report-form input { background: #ffffff; border: 1px solid #cbd5e1; color: #0f172a; padding: 8px 12px; border-radius: 8px; font-size: 12px; font-family: inherit; }
         .report-form input { flex: 1; min-width: 180px; }
-        .btn-send { background: #ef4444; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 700; font-size: 12px; cursor: pointer; }
-        .btn-send:hover { background: #dc2626; }
+        .btn-send { background: var(--coral); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 700; font-size: 12px; cursor: pointer; }
+        .btn-send:hover { filter: brightness(0.92); }
 
         .workspace { display: flex; flex-direction: column; flex: 1; padding: 16px 24px; gap: 16px; }
 
-        /* Contenedor Superior: Mapa + Gráficos */
-        .dashboard-top { display: flex; gap: 16px; height: 42vh; min-height: 320px; flex-wrap: wrap; }
-        .map-wrapper { flex: 2; min-width: 300px; position: relative; border-radius: 12px; border: 1px solid var(--border); overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); background: #e2e8f0; }
+        .dashboard-top { display: flex; gap: 16px; height: 58vh; min-height: 440px; flex-wrap: wrap; }
+        .map-wrapper { flex: 2.4; min-width: 340px; position: relative; border-radius: 12px; border: 1px solid var(--border); overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); background: #e2e8f0; }
         #mapa { width: 100%; height: 100%; z-index: 1; }
         
         .charts-wrapper { flex: 1; min-width: 250px; display: flex; flex-direction: column; gap: 16px; }
         .chart-box { flex: 1; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
         .chart-box h4 { margin: 0 0 8px 0; font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; width: 100%; text-align: left; }
-        .canvas-container { position: relative; width: 100%; height: 100%; max-height: 140px; }
+        .canvas-container { position: relative; width: 100%; height: 100%; max-height: 165px; }
 
         .radar-pulse { border-radius: 50%; border: 2px solid #0284c7; animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite; box-shadow: 0 0 15px rgba(2, 132, 199, 0.4); }
         @keyframes ping { 75%, 100% { transform: scale(3.5); opacity: 0; } }
@@ -121,7 +153,7 @@
         .btn-share { background: #16a34a; color: white; }
         .btn-link { background: #f1f5f9; border: 1px solid #cbd5e1; color: #334155; }
 
-        /* Modal Login Blanco */
+        /* Modal Login */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); z-index: 2000; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
         .modal-overlay.active { display: flex; }
         .modal-content { background: var(--bg-panel); padding: 24px; border-radius: 12px; border: 1px solid var(--border); width: 300px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
@@ -139,11 +171,17 @@
 </head>
 <body>
 
-    <header>
+    <header id="app-header" style="display: none;">
         <div class="brand">
-            <h1>🌐 BIOSPHERE <span style="color:#0284c7;">COMMAND CENTER</span></h1>
-            <span>Monitoreo Satelital | Dashboard Analítico</span>
+            <h1>BIOSPHERE <span style="color: var(--celeste);">COMMAND CENTER</span></h1>
+            <span>Plataforma de Monitoreo Ambiental y Acción Ciudadana</span>
         </div>
+
+        <nav style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button class="btn-tool" onclick="abrirModalInfo('modal-ods')" style="background: var(--celeste-claro); border-color: var(--celeste); color: var(--celeste);">ODS 6, 14 y 15</button>
+            <button class="btn-tool" onclick="abrirModalInfo('modal-contacto')" style="background: #fff1f2; border-color: var(--coral); color: var(--coral);">Canal Directo ONG</button>
+            <button class="btn-tool" onclick="volverAlHome()">Volver al Inicio</button>
+        </nav>
 
         <div class="kpi-strip">
             <div class="kpi-box">
@@ -151,58 +189,145 @@
                 <span class="kpi-val" id="kpi-total">0</span>
             </div>
             <div class="kpi-box">
-                <span class="kpi-label">Severidad Crítica</span>
-                <span class="kpi-val" style="color:#dc2626;" id="kpi-criticos">0</span>
+                <span class="kpi-label">Alerta Coral</span>
+                <span class="kpi-val" style="color: var(--coral);" id="kpi-criticos">0</span>
             </div>
             <div class="kpi-box">
-                <span class="kpi-label">Reportes de Campo</span>
-                <span class="kpi-val" style="color:#0284c7;" id="kpi-campo">0</span>
+                <span class="kpi-label">Reportes Ciudadanos</span>
+                <span class="kpi-val" style="color: var(--celeste);" id="kpi-campo">0</span>
             </div>
         </div>
 
         <div class="status-actions">
-            <div class="live-pill" id="sensor-status">🛰️ CONECTANDO...</div>
+            <div class="live-pill" id="sensor-status" style="background: var(--celeste-claro); border-color: var(--celeste); color: var(--celeste);">CONECTANDO...</div>
             
             <div style="display: flex; gap: 5px; align-items: center;">
-                <input type="text" id="buscador-ciudad" placeholder="Vuelo táctico (ej. Tokio)..." 
-                       style="background: #ffffff; border: 1px solid #cbd5e1; color: #0f172a; padding: 6px 10px; border-radius: 6px; font-size: 11px; width: 160px;">
-                <button class="btn-tool" onclick="volarACiudad()" style="background: #2563eb; color: white; border-color: #3b82f6;">🚀 Volar</button>
+                <input type="text" id="buscador-ciudad" placeholder="Buscar ciudad (ej. Lima)..." 
+                style="background: #ffffff; border: 1px solid #cbd5e1; color: #0f172a; padding: 6px 10px; border-radius: 6px; font-size: 11px; width: 165px;">
+                <button class="btn-tool" onclick="volarACiudad()" style="background: var(--celeste); color: white; border-color: var(--celeste);">Ubicar</button>
             </div>
 
-            <button class="btn-tool" onclick="sincronizarTodo()">🔄 Recargar Satélites</button>
-            <button class="btn-tool" onclick="exportarCSV()">📥 CSV</button>
+            <button class="btn-tool" onclick="sincronizarTodo(true)">Sincronizar</button>
+
+            <button class="btn-tool" onclick="exportarCSV()">Exportar CSV</button>
+            <button class="btn-tool" onclick="toggleTema()" id="btn-tema">Modo Oscuro</button>
         </div>
     </header>
 
-    <div class="action-bar">
+    <div class="action-bar" id="app-actionbar" style="display: none;">
         <div class="local-telemetry" id="telemetria-local">
-            <span>📡 Buscando GPS...</span>
+            <span>Sincronizando coordenadas GPS...</span>
         </div>
 
         <div class="locked-form" id="locked-state">
-            <span style="font-size: 12px; font-weight: bold; color: #b91c1c;">🔒 Solo el personal autorizado puede emitir alertas.</span>
-            <button class="btn-tool" style="background: #ef4444; color: white; border: none; font-size: 12px; padding: 8px 14px;" onclick="abrirLogin()">🔑 Acceso ONG</button>
+            <span style="font-size: 12px; font-weight: bold; color: var(--coral);">Acceso restringido: Solo personal autorizado puede emitir alertas oficiales.</span>
+            <button class="btn-tool" style="background: var(--coral); color: white; border: none; font-size: 12px; padding: 8px 14px;" onclick="abrirLogin()">Acceso ONG</button>
         </div>
 
         <form class="report-form" id="active-form" onsubmit="enviarReporteCampo(event)">
             <select id="rep-ods" required>
-                <option value="ODS 6">💧 ODS 6 (Hidrología)</option>
-                <option value="ODS 14">🌊 ODS 14 (Océanos)</option>
-                <option value="ODS 15">🌳 ODS 15 (Sismos/Suelo)</option>
+                <option value="ODS 6">ODS 6 (Hidrología)</option>
+                <option value="ODS 14">ODS 14 (Océanos)</option>
+                <option value="ODS 15">ODS 15 (Sismos y Suelo)</option>
             </select>
             <select id="rep-sev" required>
-                <option value="CRÍTICO">🚨 Riesgo Crítico</option>
-                <option value="ALTO">⚠️ Riesgo Alto</option>
-                <option value="MODERADO">ℹ️ Moderado</option>
+                <option value="CRÍTICO">Riesgo Crítico (Coral)</option>
+                <option value="ALTO">Riesgo Alto (Naranja)</option>
+                <option value="MODERADO">Riesgo Moderado (Amarillo)</option>
             </select>
-            <input type="text" id="rep-desc" placeholder="Ingresa los detalles del desastre geolocalizado..." required />
-            <button type="submit" class="btn-send">📍 Transmitir al Mapa</button>
+            <input type="text" id="rep-desc" placeholder="Ingresa los detalles del incidente geolocalizado..." required />
+            <button type="submit" class="btn-send">Transmitir al Mapa</button>
         </form>
     </div>
-
-    <div class="workspace">
+<!-- PORTADA INTRODUCTORIA AMPLIA (HOME FULL-SCREEN) -->
+    <section id="vista-home" style="min-height: 100vh; width: 100%; display: flex; flex-direction: column; justify-content: space-between; background: linear-gradient(135deg, #ffffff 0%, #e0f2fe 55%, #f1f5f9 100%); padding: 36px 5%;">
         
-        <!-- NUEVO: Contenedor con Mapa y Gráficos -->
+        <!-- Barra superior limpia de la portada -->
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+            <div style="font-size: 22px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px;">
+                BIOSPHERE <span style="color: #0284c7;">| INTELIGENCIA AMBIENTAL</span>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <span style="background: #ffffff; border: 1px solid #bae6fd; color: #0284c7; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 700;">
+                    ODS 6 • ODS 14 • ODS 15
+                </span>
+                <button onclick="ingresarPlataforma()" style="background: #0f172a; color: #ffffff; border: none; padding: 10px 22px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer;">
+                    Acceso Directo al Panel
+                </button>
+            </div>
+        </div>
+
+        <!-- Bloque Principal Hero (2 Columnas amplias) -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 40px; align-items: center; margin: 36px 0;">
+            
+            <!-- Columna Izquierda: Mensaje principal y botón -->
+            <div>
+                <span style="display: inline-block; background: #fff1f2; color: #ff6b6b; border: 1px solid #fecdd3; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 16px;">
+                    Monitoreo Satelital y Acción Ciudadana
+                </span>
+                <h1 style="margin: 0 0 18px 0; font-size: 46px; font-weight: 800; color: #0f172a; line-height: 1.12; letter-spacing: -1px;">
+                    Protege tu ciudad con datos ambientales en <span style="color: #0284c7;">tiempo real.</span>
+                </h1>
+                <p style="margin: 0 0 28px 0; font-size: 17px; color: #334155; line-height: 1.65;">
+                    <strong>BIOSPHERE</strong> integra telemetría climática, consumo energético (electricidad y gas natural), regulación de obras urbanas y participación ciudadana en una sola plataforma operativa para ONGs y comunidades.
+                </p>
+                <div style="display: flex; gap: 14px; flex-wrap: wrap;">
+                    <button onclick="ingresarPlataforma()" style="background: #0284c7; color: white; border: none; padding: 18px 36px; border-radius: 12px; font-size: 16px; font-weight: 800; cursor: pointer; box-shadow: 0 12px 24px -6px rgba(2, 132, 199, 0.45);">
+                        Ingresar al Centro de Monitoreo
+                    </button>
+                </div>
+            </div>
+
+            <!-- Columna Derecha: Tarjetas visuales de capacidades y colores del mapa -->
+            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 20px; padding: 28px; box-shadow: 0 20px 40px -15px rgba(15, 23, 42, 0.08); display: flex; flex-direction: column; gap: 18px;">
+                <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px;">
+                    Niveles de Alerta y Código de Colores del Mapa
+                </h3>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div style="background: #fefce8; border: 1px solid #fef08a; border-left: 5px solid #eab308; padding: 14px; border-radius: 10px;">
+                        <strong style="display: block; font-size: 14px; color: #854d0e; margin-bottom: 4px;">Amarillo — Moderado</strong>
+                        <span style="font-size: 12px; color: #713f12; line-height: 1.4; display: block;">Precaución preventiva en consumo energético o calidad del aire.</span>
+                    </div>
+                    <div style="background: #fff7ed; border: 1px solid #fed7aa; border-left: 5px solid #f97316; padding: 14px; border-radius: 10px;">
+                        <strong style="display: block; font-size: 14px; color: #9a3412; margin-bottom: 4px;">Naranja — Alerta Alta</strong>
+                        <span style="font-size: 12px; color: #7c2d12; line-height: 1.4; display: block;">Impacto activo elevado y seguimiento de periodos de construcción.</span>
+                    </div>
+                    <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-left: 5px solid #16a34a; padding: 14px; border-radius: 10px;">
+                        <strong style="display: block; font-size: 14px; color: #166534; margin-bottom: 4px;">Verde — Zona Estable</strong>
+                        <span style="font-size: 12px; color: #14532d; line-height: 1.4; display: block;">Ecosistemas bajo control y parámetros ambientales seguros.</span>
+                    </div>
+                    <div style="background: #fff1f2; border: 1px solid #fecdd3; border-left: 5px solid #ff6b6b; padding: 14px; border-radius: 10px;">
+                        <strong style="display: block; font-size: 14px; color: #9f1239; margin-bottom: 4px;">Coral — Crítico</strong>
+                        <span style="font-size: 12px; color: #881337; line-height: 1.4; display: block;">Emergencia ambiental que requiere respuesta inmediata de ONGs.</span>
+                    </div>
+                </div>
+
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; font-size: 13px; color: #475569; line-height: 1.5;">
+                    <strong>¿Qué encontrarás dentro?</strong> Mapa global interactivo, recomendaciones por ciudad, control de electricidad y gas natural, desglose de los ODS 6, 14 y 15, y canal directo para reportes ciudadanos en vivo.
+                </div>
+            </div>
+        </div>
+
+        <!-- Franja inferior de pilares -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; border-top: 1px solid #cbd5e1; padding-top: 20px;">
+            <div>
+                <strong style="font-size: 13px; color: #0284c7; display: block;">01. Vigilancia Satelital</strong>
+                <span style="font-size: 12px; color: #475569;">Datos en vivo de NASA, USGS y estaciones atmosféricas locales.</span>
+            </div>
+            <div>
+                <strong style="font-size: 13px; color: #b45309; display: block;">02. Guía Ciudadana y Energía</strong>
+                <span style="font-size: 12px; color: #475569;">Acciones prácticas por ciudad, electricidad, gas natural y obras urbanas.</span>
+            </div>
+            <div>
+                <strong style="font-size: 13px; color: #ff6b6b; display: block;">03. Canal Directo y Reportes</strong>
+                <span style="font-size: 12px; color: #475569;">Comunicación abierta para reportar incidentes en tiempo real y emitir PDFs.</span>
+            </div>
+        </div>
+    </section>
+
+    <div class="workspace" id="vista-monitor" style="display: none;">
+        
         <div class="dashboard-top">
             <div class="map-wrapper">
                 <div id="mapa"></div>
@@ -224,14 +349,45 @@
             </div>
         </div>
 
+        <!-- PANEL DINÁMICO POR CIUDAD: RECOMENDACIONES, ENERGÍA Y PERIODOS DE CONSTRUCCIÓN -->
+        <!-- PANEL DINÁMICO POR CIUDAD: ESCANEABLE Y DE ALTO CONTRASTE -->
+        <div id="panel-ciudad-info" style="background: var(--bg-panel); border: 1px solid var(--border); border-left: 5px solid var(--amarillo); border-radius: 12px; padding: 20px 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+            <div>
+                <span style="font-size: 11px; font-weight: 800; color: var(--celeste); text-transform: uppercase; letter-spacing: 0.5px;">Guía de Acción Ciudadana</span>
+                <h4 id="ciudad-titulo" style="margin: 4px 0 10px 0; font-size: 16px; font-weight: 800; color: var(--text-main);">Recomendaciones Locales (Zona Activa)</h4>
+                <ul id="ciudad-recomendacion" style="margin: 0; padding-left: 16px; font-size: 12.5px; color: #334155; line-height: 1.6;">
+                    <li><strong>Hora punta (18:00–22:00):</strong> Desconecta equipos de alto consumo.</li>
+                    <li><strong>Movilidad limpia:</strong> Prioriza transporte público o bicicleta.</li>
+                    <li><strong>Vigilancia activa:</strong> Reporta fugas de agua o quema de residuos en el Canal Directo.</li>
+                </ul>
+            </div>
+            <div>
+                <span style="font-size: 11px; font-weight: 800; color: #c2410c; text-transform: uppercase; letter-spacing: 0.5px;">Regulación Urbana y Obras</span>
+                <h4 style="margin: 4px 0 10px 0; font-size: 16px; font-weight: 800; color: var(--text-main);">Periodos de Construcción</h4>
+                <ul id="ciudad-construccion" style="margin: 0; padding-left: 16px; font-size: 12.5px; color: #334155; line-height: 1.6;">
+                    <li><strong>Lunes a Viernes:</strong> 07:30 – 17:30 hrs.</li>
+                    <li><strong>Sábados:</strong> 08:00 – 13:00 hrs (Domingos restringido).</li>
+                    <li><strong>Control ambiental:</strong> Mitigación de polvo (PM10) y suspensión de excavaciones en alerta naranja o coral.</li>
+                </ul>
+            </div>
+            <div>
+                <span style="font-size: 11px; font-weight: 800; color: #be123c; text-transform: uppercase; letter-spacing: 0.5px;">Balance Energético Zonal</span>
+                <h4 style="margin: 4px 0 10px 0; font-size: 16px; font-weight: 800; color: var(--text-main);">Electricidad y Gas Natural</h4>
+                <ul id="ciudad-energia" style="margin: 0; padding-left: 16px; font-size: 12.5px; color: #334155; line-height: 1.6;">
+                    <li><strong>Demanda Eléctrica:</strong> Moderada (<strong>58%</strong> residencial / <strong>42%</strong> comercial).</li>
+                    <li><strong>Consumo Gas Natural:</strong> Estable (<strong>34%</strong> doméstico e industrial).</li>
+                    <li><strong>Meta de ahorro:</strong> Optimizar termas y cocinas reduce hasta 18% de CO₂ zonal.</li>
+                </ul>
+            </div>
+        </div>
         <div class="filter-bar">
             <div class="filter-group">
                 <button class="filter-btn active" onclick="aplicarFiltro('TODOS', this)">Global</button>
-                <button class="filter-btn" onclick="aplicarFiltro('CERCA', this)">📡 En mi Radio</button>
-                <button class="filter-btn" onclick="aplicarFiltro('CRÍTICO', this)">🚨 Críticos</button>
-                <button class="filter-btn" onclick="aplicarFiltro('NASA', this)">🛰️ NASA</button>
-                <button class="filter-btn" onclick="aplicarFiltro('USGS', this)">🌋 Sismos</button>
-                <button class="filter-btn" onclick="aplicarFiltro('CAMPO', this)">📍 Base de Datos Local</button>
+                <button class="filter-btn" onclick="aplicarFiltro('CERCA', this)">En mi Radio</button>
+                <button class="filter-btn" onclick="aplicarFiltro('CRÍTICO', this)">Críticos</button>
+                <button class="filter-btn" onclick="aplicarFiltro('NASA', this)">NASA</button>
+                <button class="filter-btn" onclick="aplicarFiltro('USGS', this)">Sismos (USGS)</button>
+                <button class="filter-btn" onclick="aplicarFiltro('CAMPO', this)">Base Local</button>
                 <select id="radio-radar" class="radar-select" onchange="actualizarRadioRadar()">
                     <option value="300">Radar: 300 km</option>
                     <option value="800" selected>Radar: 800 km</option>
@@ -243,7 +399,7 @@
         <div class="triage-grid">
             <div class="column">
                 <div class="col-head" style="color:var(--ods6);">
-                    <span>💧 ODS 6: Agua e Hidrología</span>
+                    <span>ODS 6: Agua e Hidrología</span>
                     <span class="badge-count" id="count-ods6">0</span>
                 </div>
                 <div class="cards-scroll" id="lista-ods6"></div>
@@ -251,7 +407,7 @@
 
             <div class="column">
                 <div class="col-head" style="color:var(--ods14);">
-                    <span>🌊 ODS 14: Vida Submarina y Costas</span>
+                    <span>ODS 14: Vida Submarina y Costas</span>
                     <span class="badge-count" id="count-ods14">0</span>
                 </div>
                 <div class="cards-scroll" id="lista-ods14"></div>
@@ -259,13 +415,93 @@
 
             <div class="column">
                 <div class="col-head" style="color:var(--ods15);">
-                    <span>🌳 ODS 15: Tierra, Atmósfera y Sismos</span>
+                    <span>ODS 15: Tierra, Atmósfera y Sismos</span>
                     <span class="badge-count" id="count-ods15">0</span>
                 </div>
                 <div class="cards-scroll" id="lista-ods15"></div>
             </div>
         </div>
+    <!-- MODAL 1: ODS EXPANDIDOS (ODS 6, 14 Y 15) -->
+    <div class="modal-overlay" id="modal-ods" onclick="if(event.target === this) cerrarModalInfo('modal-ods')">
+        <div style="background: var(--bg-panel); border: 1px solid var(--border); border-radius: 16px; padding: 28px; max-width: 920px; width: 92%; max-height: 85vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); text-align: left;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 14px; margin-bottom: 18px;">
+                <div>
+                    <span style="font-size: 11px; font-weight: 800; color: var(--celeste); text-transform: uppercase;">Marco Estratégico Agenda 2030</span>
+                    <h3 style="margin: 2px 0 0 0; font-size: 19px; color: var(--text-main);">Objetivos de Desarrollo Sostenible Monitoreados (ODS 6, 14 y 15)</h3>
+                </div>
+                <button onclick="cerrarModalInfo('modal-ods')" style="background: var(--bg-base); border: 1px solid var(--border); color: var(--text-main); padding: 6px 12px; border-radius: 8px; font-weight: 700; cursor: pointer;">Cerrar</button>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px;">
+                <div style="background: var(--bg-card); border: 1px solid var(--border); border-top: 5px solid #0284c7; border-radius: 12px; padding: 18px;">
+                    <span style="background: #e0f2fe; color: #0284c7; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 800;">ODS 6 • HIDROLOGÍA</span>
+                    <h4 style="margin: 10px 0 6px 0; font-size: 15px; color: var(--text-main);">Agua Limpia y Saneamiento</h4>
+                    <p style="margin: 0 0 8px 0; font-size: 12px; color: var(--text-muted); line-height: 1.5;">Garantizar la disponibilidad y gestión sostenible del agua, protegiendo las cuencas frente a contaminación y sequías.</p>
+                    <ul style="margin: 0; padding-left: 16px; font-size: 12px; color: var(--text-muted); line-height: 1.5;">
+                        <li>Desbordes fluviales, sequías extremas y caudal de ríos.</li>
+                        <li>Turbidez y contaminación química en fuentes urbanas.</li>
+                    </ul>
+                </div>
+
+                <div style="background: var(--bg-card); border: 1px solid var(--border); border-top: 5px solid #38bdf8; border-radius: 12px; padding: 18px;">
+                    <span style="background: #f0f9ff; color: #0369a1; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 800;">ODS 14 • OCÉANOS Y COSTAS</span>
+                    <h4 style="margin: 10px 0 6px 0; font-size: 15px; color: var(--text-main);">Vida Submarina</h4>
+                    <p style="margin: 0 0 8px 0; font-size: 12px; color: var(--text-muted); line-height: 1.5;">Conservar y utilizar sosteniblemente los océanos, mares y recursos marinos frente a anomalías climáticas.</p>
+                    <ul style="margin: 0; padding-left: 16px; font-size: 12px; color: var(--text-muted); line-height: 1.5;">
+                        <li>Anomalías térmicas superficiales, ciclones y marejadas.</li>
+                        <li>Derrames costeros y protección de pesca artesanal.</li>
+                    </ul>
+                </div>
+
+                <div style="background: var(--bg-card); border: 1px solid var(--border); border-top: 5px solid #16a34a; border-radius: 12px; padding: 18px;">
+                    <span style="background: #f0fdf4; color: #15803d; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 800;">ODS 15 • ECOSISTEMAS TERRESTRES</span>
+                    <h4 style="margin: 10px 0 6px 0; font-size: 15px; color: var(--text-main);">Vida de Ecosistemas Terrestres</h4>
+                    <p style="margin: 0 0 8px 0; font-size: 12px; color: var(--text-muted); line-height: 1.5;">Proteger los bosques, gestionar sosteniblemente los suelos y frenar la pérdida de biodiversidad terrestre.</p>
+                    <ul style="margin: 0; padding-left: 16px; font-size: 12px; color: var(--text-muted); line-height: 1.5;">
+                        <li>Incendios forestales activos (NASA) y actividad sísmica (USGS).</li>
+                        <li>Calidad del aire urbano (AQI) e impacto de construcciones.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
     </div>
+
+    <!-- MODAL 2: CANAL DIRECTO CON EL EQUIPO / REPORTES EN VIVO -->
+    <div class="modal-overlay" id="modal-contacto" onclick="if(event.target === this) cerrarModalInfo('modal-contacto')">
+        <div style="background: var(--bg-panel); border: 1px solid var(--border); border-top: 5px solid var(--coral); border-radius: 16px; padding: 28px; max-width: 640px; width: 92%; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); text-align: left;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 16px;">
+                <div>
+                    <span style="font-size: 11px; font-weight: 800; color: var(--coral); text-transform: uppercase;">Participación Ciudadana en Vivo</span>
+                    <h3 style="margin: 2px 0 0 0; font-size: 18px; color: var(--text-main);">Comunicación Directa con el Equipo BIOSPHERE</h3>
+                </div>
+                <button onclick="cerrarModalInfo('modal-contacto')" style="background: var(--bg-base); border: 1px solid var(--border); color: var(--text-main); padding: 6px 12px; border-radius: 8px; font-weight: 700; cursor: pointer;">Cerrar</button>
+            </div>
+
+            <form onsubmit="enviarMensajeDirecto(event)" style="display: flex; flex-direction: column; gap: 12px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <input type="text" id="dir-nombre" placeholder="Tu nombre o institución / ONG" required style="padding: 10px 12px; border-radius: 8px; border: 1px solid #cbd5e1; font-family: inherit; font-size: 12px;">
+                    <input type="text" id="dir-ciudad" placeholder="Ciudad y país (ej. Lima, Perú)" required style="padding: 10px 12px; border-radius: 8px; border: 1px solid #cbd5e1; font-family: inherit; font-size: 12px;">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <select id="dir-tipo" style="padding: 10px 12px; border-radius: 8px; border: 1px solid #cbd5e1; font-family: inherit; font-size: 12px;">
+                        <option value="Reporte Ambiental en Vivo">Reporte Ambiental en Vivo</option>
+                        <option value="Datos de Electricidad / Gas Natural">Datos de Electricidad / Gas Natural</option>
+                        <option value="Alerta de Periodo de Construcción">Alerta de Periodo de Construcción</option>
+                        <option value="Contacto Directo con Coordinadoras">Contacto Directo con Coordinadoras</option>
+                    </select>
+                    <input type="email" id="dir-correo" placeholder="Correo electrónico de contacto" required style="padding: 10px 12px; border-radius: 8px; border: 1px solid #cbd5e1; font-family: inherit; font-size: 12px;">
+                </div>
+                <textarea id="dir-mensaje" rows="3" placeholder="Describe la situación, ubicación exacta o información adicional..." required style="padding: 10px 12px; border-radius: 8px; border: 1px solid #cbd5e1; font-family: inherit; font-size: 12px; resize: vertical;"></textarea>
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 4px;">
+                    <span style="font-size: 11px; color: var(--text-muted);">Sincronización automática con el mapa global.</span>
+                    <button type="submit" style="background: var(--coral); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer;">Enviar Reporte</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    </div>
+
 
     <!-- Modal Login -->
     <div class="modal-overlay" id="login-modal">
@@ -278,7 +514,18 @@
             <button class="btn-cancel" onclick="cerrarLogin()">Cancelar</button>
         </div>
     </div>
-
+<div class="modal-overlay" id="modal-admin-live" onclick="if(event.target === this) cerrarModalInfo('modal-admin-live')">
+    <div style="background: var(--bg-panel); border: 1px solid var(--border); border-top: 5px solid #0284c7; border-radius: 16px; padding: 24px; max-width: 650px; width: 92%; max-height: 80vh; overflow-y: auto; text-align: left;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 14px;">
+            <div>
+                <span style="font-size: 11px; font-weight: 800; color: #0284c7; text-transform: uppercase;">Telemetría Privada de Expositores</span>
+                <h3 style="margin: 2px 0 0 0; font-size: 18px; color: var(--text-main);">Audiencia Conectada (<span id="admin-online-count">0</span>)</h3>
+            </div>
+            <button onclick="cerrarModalInfo('modal-admin-live')" style="background: var(--bg-base); border: 1px solid var(--border); color: var(--text-main); padding: 6px 12px; border-radius: 8px; font-weight: 700; cursor: pointer;">Cerrar</button>
+        </div>
+        <div id="lista-actividad-usuarios" style="display: flex; flex-direction: column; gap: 8px; font-size: 12px;"></div>
+    </div>
+</div> 
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
@@ -291,10 +538,10 @@
             chartODS = new Chart(ctxODS, {
                 type: 'doughnut',
                 data: {
-                    labels: ['ODS 6 (Agua)', 'ODS 14 (Océanos)', 'ODS 15 (Tierra)'],
+                    labels: ['ODS 6 (Agua)', 'ODS 14 (Océanos)', 'ODS 15 (Tierra)', 'Electricidad (kWh)', 'Gas Natural (m³)'],
                     datasets: [{
-                        data: [0, 0, 0],
-                        backgroundColor: ['#0284c7', '#2563eb', '#16a34a'],
+                        data: [0, 0, 0, 42, 28],
+                        backgroundColor: ['#0284c7', '#38bdf8', '#16a34a', '#eab308', '#ff6b6b'],
                         borderWidth: 0,
                         hoverOffset: 4
                     }]
@@ -302,10 +549,21 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    cutout: '65%',
-                    plugins: { legend: { display: false } }
+                    cutout: '55%',
+                    plugins: {
+                    legend: {
+                        display: true,
+                        position: 'right',
+                        labels: {
+                            boxWidth: 12,
+                            padding: 10,
+                            color: '#1e293b',
+                            font: { size: 11, weight: '600', family: 'Inter' }
+                        }
+                    }
                 }
-            });
+            }
+        });
 
             const ctxSev = document.getElementById('chartSev').getContext('2d');
             chartSev = new Chart(ctxSev, {
@@ -333,7 +591,7 @@
 
         function actualizarGraficos(d6, d14, d15, c, a, m) {
             if(chartODS) {
-                chartODS.data.datasets[0].data = [d6, d14, d15];
+                chartODS.data.datasets[0].data = [d6, d14, d15, 42, 28];
                 chartODS.update();
             }
             if(chartSev) {
@@ -368,7 +626,6 @@
 
         setTimeout(() => map.invalidateSize(), 200);
 
-        // SE ACTUALIZA A MARKERCLUSTERGROUP PARA AGRUPAR LOS PINES
         const capaMarcadores = L.markerClusterGroup().addTo(map);
         
         const marcadoresPorId = {};
@@ -400,11 +657,11 @@
             const div = L.DomUtil.create('div');
             div.style.cssText = 'background:#ffffffcc; color:#0f172a; padding:8px 12px; border-radius:8px; border:1px solid #cbd5e1; font-size:11px; line-height:1.6; backdrop-filter: blur(4px); box-shadow: 0 2px 4px rgba(0,0,0,0.1);';
             div.innerHTML = `
-                <strong>Leyenda:</strong><br>
-                <span style="color:#dc2626;">●</span> Crítico &nbsp;
-                <span style="color:#0284c7;">●</span> ODS 6 &nbsp;
-                <span style="color:#2563eb;">●</span> ODS 14 &nbsp;
-                <span style="color:#16a34a;">●</span> ODS 15
+                <strong>Código de Colores del Mapa:</strong><br>
+                <span style="color:#eab308;">●</span> <b>Amarillo:</b> Precaución / Moderado<br>
+                <span style="color:#f97316;">●</span> <b>Naranja:</b> Alerta Alta / Obras<br>
+                <span style="color:#16a34a;">●</span> <b>Verde:</b> Zona Estabilizada<br>
+                <span style="color:#ff6b6b;">●</span> <b>Coral:</b> Emergencia Crítica
             `;
             return div;
         };
@@ -426,17 +683,17 @@
             const rios = arr.filter(e => e.id.startsWith('rio-')).length;
             const aire = arr.filter(e => e.id.startsWith('aire-')).length;
             document.getElementById('sensor-status').textContent =
-                `🛰️ NASA: ${nasa} | USGS: ${usgs} | HIDRO: ${rios} | ATM: ${aire}`;
+                `SATÉLITES | NASA: ${nasa} | USGS: ${usgs} | HIDRO: ${rios} | ATM: ${aire}`
         }
 
-        async function sincronizarTodo() {
-            document.getElementById('sensor-status').textContent = '🛰️ DESCARGANDO TELEMETRÍA...';
-            try {
-                const res = await fetch('/api/telemetria?forzar=1');
-                const data = await res.json();
-                if (data?.eventos) fusionarEventos(data.eventos);
-            } catch (e) {}
-        }
+    async function sincronizarTodo(forzar = false) {
+    document.getElementById('sensor-status').textContent = 'DESCARGANDO TELEMETRÍA...';
+    try {
+        const res = await fetch(`/api/telemetria?forzar=${forzar ? 1 : 0}`);
+        const data = await res.json();
+        if (data?.eventos) fusionarEventos(data.eventos);
+    } catch (e) {}
+}
 
         async function analizarClimaEnZona(id) {
             const ev = mapaEventos.get(id);
@@ -460,7 +717,7 @@
                 const aqi = aire.current?.us_aqi ?? '--';
 
                 if (box) {
-                    box.innerHTML = `📡 <strong>Estación Local:</strong> 🌡️ ${temp}°C | 🌧️ Lluvia: ${lluvia}mm | 💨 Viento: ${viento}km/h | 🌫️ AQI: ${aqi}`;
+                    box.innerHTML = `<strong>Estación Local:</strong> Temp: ${temp}°C | Lluvia: ${lluvia}mm | Viento: ${viento}km/h | AQI: ${aqi}`;
                 }
             } catch {
                 if (box) box.innerHTML = '⚠️ Señal perdida con el satélite atmosférico.';
@@ -512,14 +769,12 @@
             const todosLosEventos = Array.from(mapaEventos.values());
 
             todosLosEventos.forEach(ev => {
-                // Conteos globales para gráficos
                 if (ev.severidad === 'CRÍTICO') c_crit++;
                 else if (ev.severidad === 'ALTO') c_alto++;
                 else c_mod++;
 
                 if (ev.id.startsWith('campo-')) campo++;
 
-                // Filtros de vista
                 if (filtroActual === 'CERCA') {
                     if (!miUbicacion) return;
                     const dist = calcularDistanciaKm(miUbicacion.lat, miUbicacion.lng, ev.latitud, ev.longitud);
@@ -548,12 +803,19 @@
                 }).addTo(capaMarcadores);
 
                 marker.bindPopup(`
-                    <div style="font-family:Inter,sans-serif; text-align:center; max-width:220px;">
-                        <strong style="color:#0f172a;">${ev.detalle}</strong><br>
-                        <span style="font-size:11px; color:#64748b;">${ev.fuente}</span><br>
-                        <span style="font-size:10px; padding:2px 6px; background:#f1f5f9; border-radius:4px;"><b>${ev.severidad}</b></span>
-                    </div>
-                `);
+    <div style="font-family:Inter,sans-serif; text-align:center; max-width:220px;">
+        <strong style="color:#0f172a;">${ev.detalle}</strong><br>
+        <span style="font-size:11px; color:#64748b;">${ev.fuente}</span><br>
+        <span style="font-size:10px; padding:2px 6px; background:#f1f5f9; border-radius:4px;"><b>${ev.severidad}</b></span><br>
+        <button onclick="verImagenesDesastre('${ev.id}')" style="margin-top:8px; background:#0284c7; color:white; border:none; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700;">Ver Evidencia Visual</button>
+    </div>
+`);
+                
+                // NUEVA FUNCIÓN: Zoom Inteligente al hacer clic en el marcador
+                marker.on('click', function(e) {
+                    map.flyTo(e.latlng, 12, { animate: true, duration: 1.5 });
+                });
+
                 marcadoresPorId[ev.id] = marker;
 
                 const card = document.createElement('div');
@@ -567,11 +829,14 @@
                     <div class="weather-strip" id="clima-${ev.id}"></div>
                     <div class="meta-row">
                         <span>${distTexto}</span>
-                        <span>🕒 ${ev.fecha.split(',')[1] || ev.fecha}</span>
+                        <span>${ev.fecha.split(',')[1] || ev.fecha}</span>
                     </div>
                     <div class="card-actions">
-                        <button class="btn-op btn-focus" onclick="enfocarEvento('${ev.id}', ${ev.latitud}, ${ev.longitud})">🎯 Ubicar</button>
-                        <button class="btn-op btn-weather" onclick="analizarClimaEnZona('${ev.id}')">🌦️ Clima</button>
+                        <button class="btn-op btn-focus" onclick="enfocarEvento('${ev.id}', ${ev.latitud}, ${ev.longitud})">Ubicar</button>
+                        <button class="btn-op btn-weather" style="background: var(--celeste); color: white;" onclick="analizarClimaEnZona('${ev.id}')">Clima</button>
+                        <button class="btn-op" style="background: var(--amarillo); color: #0f172a;" onclick="alertarRedes('${ev.id}')">Alertar</button>
+                        <button class="btn-op" style="background: var(--coral); color: white;" onclick="generarPDFDesastre('${ev.id}')">PDF</button>
+                        <button class="btn-op" style="background: #334155; color: white;" onclick="verImagenesDesastre('${ev.id}')">Fotos</button>
                     </div>
                 `;
                 document.getElementById(listaId).appendChild(card);
@@ -584,7 +849,6 @@
             document.getElementById('kpi-criticos').textContent = c_crit;
             document.getElementById('kpi-campo').textContent = campo;
 
-            // Actualizar los gráficos en vivo
             actualizarGraficos(c6, c14, c15, c_crit, c_alto, c_mod);
         }
 
@@ -639,7 +903,27 @@
 
         // WEBSOCKETS Y VUELO TÁCTICO
         socket.on('historial_radar', (p) => { if(p?.eventos) fusionarEventos(p.eventos); });
-        socket.on('actualizacion_radar', (n) => { fusionarEventos([n]); enfocarEvento(n.id, n.latitud, n.longitud); });
+        
+        // NUEVA FUNCIÓN: Alerta Visual Integrada (SweetAlert2) + Zoom al pin en tiempo real
+        socket.on('actualizacion_radar', (n) => { 
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 4000,
+                timerProgressBar: true,
+                background: '#1e1e1e',
+                color: '#ffffff'
+            });
+
+            Toast.fire({
+                icon: 'warning',
+                title: '⚠️ Nueva alerta táctica recibida'
+            });
+
+            fusionarEventos([n]); 
+            enfocarEvento(n.id, n.latitud, n.longitud); 
+        });
         
         socket.on('entorno_local', (env) => {
             document.getElementById('telemetria-local').innerHTML += `
@@ -658,6 +942,8 @@
                 if (datos.length > 0) {
                     const lat = parseFloat(datos[0].lat), lng = parseFloat(datos[0].lon);
                     map.flyTo([lat, lng], 10, { animate: true, duration: 2 });
+                    document.getElementById('ciudad-titulo').textContent = `Recomendaciones Locales — ${ciudad.toUpperCase()}`;
+                    document.getElementById('ciudad-recomendacion').innerHTML = `En <strong>${ciudad}</strong>: Evita actividades al aire libre si el AQI supera 100, optimiza el consumo de electricidad y gas natural en horarios pico y participa en jornadas locales de arborización y limpieza hídrica.`;
                     setTimeout(() => map.fire('click', { latlng: L.latLng(lat, lng) }), 2200);
                     document.getElementById('buscador-ciudad').value = '';
                 } else alert('❌ Destino no localizado.');
@@ -666,35 +952,464 @@
         }
         document.getElementById('buscador-ciudad').addEventListener('keypress', e => { if (e.key === 'Enter') volarACiudad(); });
 
+        // NUEVA FUNCIÓN: Pantalla de Carga (Loading State) al analizar el clima táctico
         let pinPersonalizado = null;
         map.on('click', async function(e) {
             const lat = e.latlng.lat, lng = e.latlng.lng;
+            
+            Swal.fire({
+                title: 'Analizando telemetría...',
+                text: 'Conectando con satélites meteorológicos...',
+                allowOutsideClick: false,
+                background: '#1e1e1e',
+                color: '#ffffff',
+                didOpen: () => { Swal.showLoading(); }
+            });
+
             if (pinPersonalizado) map.removeLayer(pinPersonalizado);
-            pinPersonalizado = L.marker([lat, lng]).addTo(map).bindPopup('⏳ Analizando sector...').openPopup();
 
             try {
                 const [resClima, resAire] = await Promise.all([
                     fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,wind_speed_10m`).then(r => r.json()),
                     fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lng}&current=us_aqi`).then(r => r.json())
                 ]);
+                
+                Swal.close(); // Cierra el cartel de carga
+
                 const temp = resClima.current?.temperature_2m ?? '--', viento = resClima.current?.wind_speed_10m ?? '--', aqi = resAire.current?.us_aqi ?? '--';
                 
                 let riesgo = "✅ Sin Anomalías", color = "#16a34a";
                 if (aqi > 100 || viento > 40) { riesgo = "⚠️ Precaución", color = "#d97706"; }
                 if (aqi > 150 || viento > 70) { riesgo = "🚨 Alerta Zonal", color = "#dc2626"; }
 
-                pinPersonalizado.setPopupContent(`
+                pinPersonalizado = L.marker([lat, lng]).addTo(map).bindPopup(`
                     <div style="font-family:Inter,sans-serif; text-align:center;">
                         <strong style="color:${color};">${riesgo}</strong><br>
                         <small style="color:#64748b;">📍 ${lat.toFixed(2)}, ${lng.toFixed(2)}</small><hr style="margin:5px 0; border:0; border-top:1px solid #e2e8f0;">
                         🌡️ ${temp}°C | 💨 ${viento}km/h | 🌫️ AQI: ${aqi}<br>
                         <button onclick="navigator.clipboard.writeText('${lat.toFixed(4)}, ${lng.toFixed(4)}')" style="margin-top:8px; background:#f1f5f9; color:#0f172a; border:1px solid #cbd5e1; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:10px;">📋 Copiar Coordenadas</button>
                     </div>
-                `);
-            } catch { pinPersonalizado.setPopupContent('⚠️ Datos no disponibles en esta cuadrícula.'); }
+                `).openPopup();
+            } catch { 
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Interferencia en la señal',
+                    text: 'Datos no disponibles en esta cuadrícula.',
+                    background: '#1e1e1e',
+                    color: '#ffffff'
+                });
+            }
+        });
+let esModoOscuro = false;
+
+// Función auxiliar conectada directamente a tu mapaEventos real
+function obtenerDatosEvento(id) {
+    if (typeof mapaEventos !== 'undefined' && mapaEventos.has(id)) {
+        return mapaEventos.get(id);
+    }
+    return {
+        detalle: 'Incidente Ambiental Detectado',
+        severidad: 'CRÍTICO',
+        ods: 'ODS Ambiental',
+        latitud: '--',
+        longitud: '--',
+        fuente: 'BIOSPHERE',
+        fecha: new Date().toLocaleString()
+    };
+}
+
+// 1. Alerta multicanal para WhatsApp y Telegram con datos reales
+function alertarRedes(id) {
+    const ev = obtenerDatosEvento(id);
+    const titulo = ev.detalle || 'Emergencia Ambiental';
+    const nivel = ev.severidad || 'CRÍTICO';
+    const lat = ev.latitud ?? '--';
+    const lon = ev.longitud ?? '--';
+    const mapsUrl = `https://www.google.com/maps?q=${lat},${lon}`;
+
+    const mensaje = `🚨 *ALERTA BIOSPHERE [${nivel}]* 🚨\n\n` +
+                    `🌍 *Evento:* ${titulo}\n` +
+                    `📊 *Categoría:* ${ev.ods || 'Monitoreo Ambiental'}\n` +
+                    `🛰️ *Fuente:* ${ev.fuente || 'Telemetría'}\n` +
+                    `📍 *Coordenadas:* ${lat}, ${lon}\n` +
+                    `🗺️ *Mapa en vivo:* ${mapsUrl}\n\n` +
+                    `_Despachado desde Centro de Comando BIOSPHERE_`;
+
+    const textoCodificado = encodeURIComponent(mensaje);
+    const urlWhatsApp = `https://wa.me/?text=${textoCodificado}`;
+    const urlTelegram = `https://t.me/share/url?url=${encodeURIComponent(mapsUrl)}&text=${textoCodificado}`;
+
+    Swal.fire({
+        title: '📲 Despachar Alerta de Emergencia',
+        html: `
+            <p style="font-size: 14px; margin-bottom: 15px;">Selecciona el canal táctico para difundir la alerta de <strong>${titulo}</strong>:</p>
+            <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                <a href="${urlWhatsApp}" target="_blank" style="background: #25D366; color: white; padding: 10px 18px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-flex; align-items: center; gap: 6px;">
+                    💬 Enviar por WhatsApp
+                </a>
+                <a href="${urlTelegram}" target="_blank" style="background: #0088cc; color: white; padding: 10px 18px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-flex; align-items: center; gap: 6px;">
+                    ✈️ Enviar por Telegram
+                </a>
+            </div>
+        `,
+        showConfirmButton: false,
+        showCloseButton: true,
+        background: esModoOscuro ? '#1e293b' : '#ffffff',
+        color: esModoOscuro ? '#f8fafc' : '#0f172a'
+    });
+}
+
+// 2. Generador de Ficha Técnica PDF con la información real del desastre
+// 2. Generador de Dossier Técnico Operativo para ONGs
+function generarPDFDesastre(id) {
+    const ev = obtenerDatosEvento(id);
+    const titulo = ev.detalle || 'Incidente Ambiental Detectado';
+    const nivel = ev.severidad || 'CRÍTICO';
+    const ods = ev.ods || 'ODS 15';
+    const fuente = ev.fuente || 'Telemetría Satelital / Red Local';
+    const lat = ev.latitud ?? 0;
+    const lon = ev.longitud ?? 0;
+    const fecha = ev.fecha || new Date().toLocaleString();
+    const folio = `BIO-${new Date().getFullYear()}-${String(id).slice(-5).toUpperCase()}`;
+
+    // Cálculo logístico desde la base GPS de la ONG
+    let distanciaTexto = 'Base GPS no vinculada (Verificar en mapa)';
+    let tiempoEstimado = 'Pendiente de triangulación';
+    if (typeof miUbicacion !== 'undefined' && miUbicacion) {
+        const km = calcularDistanciaKm(miUbicacion.lat, miUbicacion.lng, lat, lon);
+        distanciaTexto = `${km.toLocaleString()} km desde el puesto de mando actual`;
+        tiempoEstimado = km < 100 ? 'Despliegue terrestre inmediato (< 2 hrs)' : (km < 800 ? 'Despliegue aéreo/regional (4 - 12 hrs)' : 'Coordinación con célula internacional');
+    }
+
+    // Diagnóstico técnico especializado según ODS
+    let analisisODS = '';
+    if (ods === 'ODS 6') {
+        analisisODS = 'Riesgo de alteración en cuencas hidrográficas, turbidez o contaminación de fuentes de agua potable. Se requiere muestreo fisicoquímico inmediato (pH, oxígeno disuelto y metales pesados) y restricción preventiva de consumo humano o agrícola en el perímetro.';
+    } else if (ods === 'ODS 14') {
+        analisisODS = 'Amenaza directa sobre biodiversidad marina, corrientes costeras y zonas de pesca artesanal. Se recomienda desplegar barreras de contención, monitorear deriva por viento/oleaje y alertar a capitanías de puerto y comunidades litorales.';
+    } else {
+        analisisODS = 'Afectación en cobertura vegetal, estabilidad de suelos o ecosistemas terrestres. Priorizar evaluación de fauna desplazada, riesgo de deslizamientos o propagación térmica, y asegurar corredores de evacuación para poblaciones cercanas.';
+    }
+
+    // Protocolo táctico según nivel de severidad
+    let colorBadge = '#059669';
+    let accionesBrigada = [
+        'Mantener vigilancia satelital cada 6 horas y registrar variaciones.',
+        'Notificar a líderes comunitarios locales para observación preventiva.',
+        'Documentar evidencia fotográfica georreferenciada para bitácora.'
+    ];
+
+    if (nivel === 'CRÍTICO') {
+        colorBadge = '#dc2626';
+        accionesBrigada = [
+            'ACTIVACIÓN INMEDIATA: Despachar brigada de primera respuesta con equipo EPP completo.',
+            'Establecer perímetro de exclusión de 5 km alrededor de las coordenadas reportadas.',
+            'Abrir canal de enlace directo con Protección Civil, autoridades ambientales y centros de salud.',
+            'Iniciar levantamiento de censo de población y fauna en zona de impacto directo.'
+        ];
+    } else if (nivel === 'ALTO') {
+        colorBadge = '#d97706';
+        accionesBrigada = [
+            'Alistar unidad móvil de evaluación rápida para reconocimiento en terreno.',
+            'Verificar estaciones meteorológicas y calidad del aire en un radio de 50 km.',
+            'Preparar insumos de mitigación y alerta temprana para comunidades aledañas.'
+        ];
+    }
+
+    const mapsUrl = `https://www.google.com/maps?q=${lat},${lon}`;
+    const ventana = window.open('', '_blank', 'width=900,height=750');
+    
+    ventana.document.write(`
+        <html>
+        <head>
+            <title>Dossier Operativo ONG - ${folio}</title>
+            <style>
+                body { font-family: 'Segoe UI', Arial, sans-serif; padding: 35px; color: #0f172a; line-height: 1.5; font-size: 13px; }
+                .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #0284c7; padding-bottom: 15px; margin-bottom: 20px; }
+                .logo { font-size: 22px; font-weight: 800; color: #0284c7; letter-spacing: 0.5px; }
+                .sublogo { font-size: 12px; color: #475569; margin-top: 2px; }
+                .folio-box { text-align: right; }
+                .badge { background: ${colorBadge}; color: white; padding: 5px 12px; border-radius: 5px; font-weight: bold; font-size: 12px; display: inline-block; }
+                .section-title { font-size: 13px; font-weight: 800; text-transform: uppercase; color: #0284c7; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin: 20px 0 10px 0; }
+                .hero-card { background: #f8fafc; border-left: 5px solid ${colorBadge}; border-top: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; padding: 16px; border-radius: 6px; }
+                .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
+                .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+                .box { background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px 12px; border-radius: 6px; }
+                .label { font-size: 10px; text-transform: uppercase; color: #64748b; font-weight: 700; }
+                .val { font-size: 13px; font-weight: 700; color: #0f172a; margin-top: 2px; }
+                .checklist { margin: 0; padding-left: 18px; }
+                .checklist li { margin-bottom: 6px; }
+                .sign-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 35px; }
+                .sign-line { border-top: 1px solid #64748b; padding-top: 6px; text-align: center; font-size: 11px; color: #475569; }
+                .footer { margin-top: 25px; font-size: 11px; color: #64748b; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 10px; }
+                @media print { body { padding: 15px; } }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <div>
+                    <div class="logo">🌍 BIOSPHERE | UNIDAD DE RESPUESTA ONG</div>
+                    <div class="sublogo">Dossier Técnico de Inteligencia Ambiental y Despliegue Humanitario</div>
+                </div>
+                <div class="folio-box">
+                    <div class="badge">PRIORIDAD: ${nivel}</div>
+                    <div style="font-size: 11px; color: #475569; margin-top: 5px;"><strong>Folio:</strong> ${folio}</div>
+                    <div style="font-size: 11px; color: #475569;"><strong>Emisión:</strong> ${new Date().toLocaleString()}</div>
+                </div>
+            </div>
+
+            <div class="hero-card">
+                <div class="label">INCIDENTE REPORTADO</div>
+                <h1 style="margin: 4px 0 6px 0; font-size: 20px; color: #0f172a;">${titulo}</h1>
+                <div style="font-size: 12px; color: #334155;"><strong>Enlace Satelital Directo:</strong> <a href="${mapsUrl}" target="_blank">${mapsUrl}</a></div>
+            </div>
+
+            <div class="section-title">1. Parámetros Geoespaciales y Telemetría</div>
+            <div class="grid">
+                <div class="box"><div class="label">Clasificación Agenda 2030</div><div class="val">${ods}</div></div>
+                <div class="box"><div class="label">Sensor / Fuente Primaria</div><div class="val">${fuente}</div></div>
+                <div class="box"><div class="label">Fecha y Hora de Detección</div><div class="val">${fecha}</div></div>
+                <div class="box"><div class="label">Latitud Decimal</div><div class="val">${lat}°</div></div>
+                <div class="box"><div class="label">Longitud Decimal</div><div class="val">${lon}°</div></div>
+                <div class="box"><div class="label">ID Interno de Sistema</div><div class="val">${id}</div></div>
+            </div>
+
+            <div class="section-title">2. Logística de Despliegue desde Base ONG</div>
+            <div class="grid-2">
+                <div class="box"><div class="label">Distancia Operativa Estimada</div><div class="val">${distanciaTexto}</div></div>
+                <div class="box"><div class="label">Ventana de Respuesta Sugerida</div><div class="val">${tiempoEstimado}</div></div>
+            </div>
+
+            <div class="section-title">3. Evaluación de Impacto Ecológico y Riesgos</div>
+            <div class="box" style="background: #ffffff;">
+                <p style="margin: 0; text-align: justify;">${analisisODS}</p>
+            </div>
+
+            <div class="section-title">4. Protocolo de Acción para Brigadas en Campo</div>
+            <div class="box" style="background: #ffffff;">
+                <ul class="checklist">
+                    ${accionesBrigada.map(accion => `<li>${accion}</li>`).join('')}
+                </ul>
+            </div>
+
+            <div class="sign-grid">
+                <div class="sign-line"><strong>Coordinador de Operaciones ONG</strong><br>Validación de Despliegue en Terreno</div>
+                <div class="sign-line"><strong>Analista de Telemetría BIOSPHERE</strong><br>Certificación de Datos Satelitales</div>
+            </div>
+
+            <div class="footer">
+                Documento Oficial de Uso Operativo • Generado por BIOSPHERE Command Center • Válido para coordinación interinstitucional
+            </div>
+        </body>
+        </html>
+    `);
+    ventana.document.close();
+    setTimeout(() => { ventana.print(); }, 350);
+}
+async function verImagenesDesastre(id) {
+    const ev = obtenerDatosEvento(id);
+    const titulo = ev.detalle || 'Evento Ambiental';
+
+    Swal.fire({
+        title: 'Buscando registros visuales...',
+        text: 'Consultando archivo satelital y fotográfico...',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+    });
+
+    // Imágenes de respaldo de alta calidad por categoría (sin fallos de red)
+    const respaldos = {
+        sismo: 'https://images.unsplash.com/photo-1584036561566-baf8f5f1b144?auto=format&fit=crop&w=800&q=80',
+        incendio: 'https://images.unsplash.com/photo-1542856391-010fb87dcfed?auto=format&fit=crop&w=800&q=80',
+        tormenta: 'https://images.unsplash.com/photo-1527482797697-8795b05a13fe?auto=format&fit=crop&w=800&q=80',
+        agua: 'https://images.unsplash.com/photo-1547683905-f686c993aae5?auto=format&fit=crop&w=800&q=80',
+        aire: 'https://images.unsplash.com/photo-1611273426858-450d8e3c9fce?auto=format&fit=crop&w=800&q=80',
+        volcan: 'https://images.unsplash.com/photo-1518457607834-6e8d80c183c5?auto=format&fit=crop&w=800&q=80'
+    };
+
+    const textoMin = titulo.toLowerCase();
+    let imgSeleccionada = respaldos.agua;
+    let terminoBusqueda = 'natural disaster satellite';
+
+    if (textoMin.includes('sismo') || textoMin.includes('earthquake')) {
+        imgSeleccionada = respaldos.sismo;
+        terminoBusqueda = 'earthquake damage fault';
+    } else if (textoMin.includes('fire') || textoMin.includes('incendio') || textoMin.includes('wildfire')) {
+        imgSeleccionada = respaldos.incendio;
+        terminoBusqueda = 'wildfire smoke forest';
+    } else if (textoMin.includes('storm') || textoMin.includes('cyclone') || textoMin.includes('tormenta')) {
+        imgSeleccionada = respaldos.tormenta;
+        terminoBusqueda = 'tropical cyclone satellite';
+    } else if (textoMin.includes('volcan')) {
+        imgSeleccionada = respaldos.volcan;
+        terminoBusqueda = 'volcanic eruption ash';
+    } else if (textoMin.includes('aqi') || textoMin.includes('atmósfera')) {
+        imgSeleccionada = respaldos.aire;
+        terminoBusqueda = 'air pollution smog city';
+    }
+
+    // Intenta traer una imagen real desde Wikimedia Commons (gratis, rápido y seguro)
+    try {
+        const res = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(terminoBusqueda)}&gsrnamespace=6&gsrlimit=4&prop=imageinfo&iiprop=url&iiurlwidth=800&format=json&origin=*`);
+        const data = await res.json();
+        const pages = data?.query?.pages ? Object.values(data.query.pages) : [];
+        const valida = pages.find(p => p.imageinfo?.[0]?.thumburl && !p.title.toLowerCase().endsWith('.svg'));
+        if (valida) {
+            imgSeleccionada = valida.imageinfo[0].thumburl;
+        }
+    } catch (e) {}
+
+    Swal.fire({
+        title: ev.ods || 'Registro Ambiental',
+        html: `
+            <div style="text-align:left; font-size:13px;">
+                <p style="margin:0 0 10px 0; font-weight:700; color:#0f172a;">${titulo}</p>
+                <img src="${imgSeleccionada}" alt="Evidencia del evento" style="width:100%; height:240px; object-fit:cover; border-radius:10px; border:1px solid #cbd5e1; margin-bottom:10px;">
+                <div style="display:flex; justify-content:space-between; font-size:11px; color:#475569; background:#f8fafc; padding:8px 10px; border-radius:8px; border:1px solid #e2e8f0;">
+                    <span><strong>Fuente:</strong> ${ev.fuente}</span>
+                    <span><strong>Coords:</strong> ${Number(ev.latitud).toFixed(2)}, ${Number(ev.longitud).toFixed(2)}</span>
+                </div>
+            </div>
+        `,
+        confirmButtonText: 'Cerrar Vista',
+        confirmButtonColor: '#0284c7',
+        width: 520
+    });
+}
+
+function toggleTema() {
+    esModoOscuro = !esModoOscuro;
+    document.body.setAttribute('data-theme', esModoOscuro ? 'dark' : 'light');
+    document.getElementById('btn-tema').innerHTML = esModoOscuro ? '☀️ Claro' : '🌙 Oscuro';
+    
+    if(esModoOscuro) {
+        map.removeLayer(mapaClaro);
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+            attribution: '© Esri — Navteq, DeLorme'
+        }).addTo(map);
+    } else {
+        map.eachLayer(layer => { 
+            if(layer._url && layer._url.includes('World_Dark_Gray_Base')) {
+                map.removeLayer(layer); 
+            } 
+        });
+        mapaClaro.addTo(map);
+    }
+}
+function abrirModalInfo(id) {
+    document.getElementById(id).classList.add('active');
+}
+
+function cerrarModalInfo(id) {
+    document.getElementById(id).classList.remove('active');
+}
+// Navegación entre Home, Monitoreo, ODS Expandidos y Canal Directo
+function ingresarPlataforma() {
+    document.getElementById('vista-home').style.display = 'none';
+    document.getElementById('app-header').style.display = 'flex';
+    document.getElementById('app-actionbar').style.display = 'flex';
+    document.getElementById('vista-monitor').style.display = 'flex';
+    if (typeof map !== 'undefined') {
+        setTimeout(() => map.invalidateSize(), 150);
+    }
+}
+
+function volverAlHome() {
+    document.getElementById('vista-home').style.display = 'flex';
+    document.getElementById('app-header').style.display = 'none';
+    document.getElementById('app-actionbar').style.display = 'none';
+    document.getElementById('vista-monitor').style.display = 'none';
+}
+
+// Envío de reportes ciudadanos y comunicación directa en vivo
+function enviarMensajeDirecto(e) {
+    e.preventDefault();
+    const nombre = document.getElementById('dir-nombre').value.trim();
+    const ciudad = document.getElementById('dir-ciudad').value.trim();
+    const tipo = document.getElementById('dir-tipo').value;
+    const mensaje = document.getElementById('dir-mensaje').value.trim();
+
+    // Si hay GPS activo, también lo transmite al mapa en tiempo real
+    if (typeof miUbicacion !== 'undefined' && miUbicacion && typeof socket !== 'undefined') {
+        socket.emit('nuevo_reporte', {
+            ods: tipo.includes('Electricidad') ? 'ODS 7' : (tipo.includes('Construcción') ? 'ODS 11' : 'ODS 15'),
+            severidad: 'ALTO',
+            detalle: `[${ciudad} - ${nombre}] ${tipo}: ${mensaje}`,
+            latitud: miUbicacion.lat,
+            longitud: miUbicacion.lng,
+            fecha: new Date().toLocaleString()
+        });
+    }
+
+    Swal.fire({
+        icon: 'success',
+        title: 'Información Recibida',
+        text: `Gracias ${nombre}. Tu reporte desde ${ciudad} fue enviado al equipo BIOSPHERE y sincronizado con el radar.`,
+        confirmButtonColor: '#0284c7'
+    });
+
+    e.target.reset();
+    cerrarModalInfo('modal-contacto');
+}
+// Atajo secreto: Ctrl + Shift + L para pedir el PIN
+document.addEventListener('keydown', async (e) => {
+    if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'l') {
+        e.preventDefault();
+        const { value: pin } = await Swal.fire({
+            title: 'Verificación de Equipo',
+            input: 'password',
+            inputPlaceholder: 'Ingresa el PIN maestro',
+            showCancelButton: true,
+            confirmButtonText: 'Verificar',
+            cancelButtonText: 'Cancelar'
         });
 
-        sincronizarTodo();
-    </script>
+        if (pin) {
+            socket.emit('desbloquear_expositor', pin, (res) => {
+                if (res?.ok) {
+                    abrirModalInfo('modal-admin-live');
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Acceso Denegado', timer: 1500, showConfirmButton: false });
+                }
+            });
+        }
+    }
+});
+
+// Solo el servidor envía datos a sockets que pasaron la verificación SHA-256
+socket.on('panel_actividad_admin', (lista) => {
+    document.getElementById('admin-online-count').textContent = lista.length;
+    const contenedor = document.getElementById('lista-actividad-usuarios');
+    if (!contenedor) return;
+    contenedor.innerHTML = lista.map(u => `
+        <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-card); border:1px solid var(--border); padding:8px 12px; border-radius:8px;">
+            <span><strong style="color:#0284c7;">Visitante #${u.id}</strong> — ${u.accion}</span>
+            <span style="font-size:11px; color:var(--text-muted);">${u.hora}</span>
+        </div>
+    `).join('');
+});
+
+// Rastreo silencioso de navegación
+const _ingresarOrig = ingresarPlataforma;
+ingresarPlataforma = function() {
+    _ingresarOrig();
+    socket.emit('registrar_actividad', 'Entró al Centro de Monitoreo');
+};
+
+const _volarOrig = volarACiudad;
+volarACiudad = async function() {
+    const c = document.getElementById('buscador-ciudad').value.trim();
+    if (c) socket.emit('registrar_actividad', `Buscó ciudad: ${c}`);
+    await _volarOrig();
+};
+
+const _verImgOrig = verImagenesDesastre;
+verImagenesDesastre = async function(id) {
+    const ev = obtenerDatosEvento(id);
+    socket.emit('registrar_actividad', `Viendo fotos: ${ev.detalle.slice(0, 35)}`);
+    await _verImgOrig(id);
+};
+
+</script>
 </body>
 </html>
